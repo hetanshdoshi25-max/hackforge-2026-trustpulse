@@ -32,7 +32,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-md rounded-xl bg-slate-900 border border-slate-700/80 p-6 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-xl bg-neutral-900 border border-slate-700/80 p-6 shadow-2xl">
         <button
           onClick={onCancel}
           disabled={isLoading}
@@ -62,7 +62,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 type="button"
                 onClick={onCancel}
                 disabled={isLoading}
-                className="px-4 py-2 text-xs font-mono font-medium rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition"
+                className="px-4 py-2 text-xs font-mono font-medium rounded-lg bg-neutral-800 text-slate-300 hover:bg-slate-700 hover:text-white transition"
               >
                 {cancelLabel}
               </button>

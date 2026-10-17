@@ -97,7 +97,7 @@ export const StagePage: React.FC = () => {
   const timeline = useMemo(() => session?.timeline ?? [], [session]);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#05080f] text-slate-100">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#000000] text-slate-100">
       {/* ambient vignette in the status colour */}
       <div
         className="pointer-events-none absolute inset-0 transition-[background] duration-700"
@@ -124,7 +124,7 @@ export const StagePage: React.FC = () => {
           <select
             value={follow}
             onChange={(e) => setParams({ rider: e.target.value })}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-2 py-1 text-slate-200"
+            className="rounded-lg border border-slate-700 bg-neutral-900/80 px-2 py-1 text-slate-200"
             aria-label="Rider to follow"
           >
             <option value="DEMO1">Follow DEMO1</option>
@@ -141,10 +141,14 @@ export const StagePage: React.FC = () => {
           <div className="relative flex-1 min-h-[420px]">
             <Fingerprint3D signals={session?.signals} action={action} height="100%" className="absolute inset-0" />
             {!session && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-                <Smartphone className="h-10 w-10 text-slate-600" />
-                <p className="text-lg text-slate-400">Waiting for {anyLive ? 'a live phone' : follow} to log in…</p>
-                <p className="text-sm text-slate-600">Open /rider on the phone and enter the PIN</p>
+              <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
+                <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-black/85 px-5 py-3 backdrop-blur">
+                  <Smartphone className="h-6 w-6 shrink-0 text-slate-400" />
+                  <div className="text-left">
+                    <p className="text-base text-slate-200">Waiting for {anyLive ? 'a live phone' : follow} to log in…</p>
+                    <p className="text-sm text-slate-500">Open /rider on the phone and enter the PIN</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -155,7 +159,7 @@ export const StagePage: React.FC = () => {
         <section className="flex flex-col gap-5">
           <div>
             <div className="text-sm uppercase tracking-widest text-slate-500">{session ? session.rider_id : 'No session'}</div>
-            <div className="text-3xl font-semibold">{session?.name ?? '—'}</div>
+            <div className="text-3xl font-semibold">{session?.name ?? '-'}</div>
             {session && (
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
                 <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{session.city ?? 'Unknown city'}</span>
@@ -169,7 +173,7 @@ export const StagePage: React.FC = () => {
             <div>
               <div className="text-sm uppercase tracking-widest text-slate-500">Trust</div>
               <div className="text-[7rem] font-bold leading-none tabular-nums" style={{ color: hex, textShadow: `0 0 40px ${hex}55` }}>
-                {trust}
+                {session ? trust : '-'}
               </div>
             </div>
             <div
@@ -177,7 +181,7 @@ export const StagePage: React.FC = () => {
               style={{ borderColor: `${hex}88`, background: `${hex}14`, color: hex }}
             >
               {alarm ? <ShieldAlert className="h-5 w-5" /> : action === 'ENROLLING' ? <Sparkles className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
-              {meta.label}
+              {session ? meta.label : 'WAITING'}
             </div>
           </div>
 
@@ -196,7 +200,7 @@ export const StagePage: React.FC = () => {
                     <span className="text-slate-300">{g.label}</span>
                     <span className="tabular-nums text-slate-400">{match === undefined ? 'no data' : `${match}% match`}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-800/80">
+                  <div className="h-2 overflow-hidden rounded-full bg-neutral-800/80">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{ width: `${match ?? 0}%`, background: match === undefined ? 'transparent' : match >= 50 ? '#34d399' : match >= 25 ? '#fde047' : '#e11d48' }}

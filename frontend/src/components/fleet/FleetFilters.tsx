@@ -26,7 +26,7 @@ export const FleetFilters: React.FC<FleetFiltersProps> = ({
   const actions: (ActionType | 'ALL')[] = ['ALL', 'ALLOW', 'SOFT_CHECK', 'STEP_UP', 'REVIEW', 'ENROLLING'];
 
   return (
-    <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs font-mono">
+    <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs font-mono">
       {/* Search Input */}
       <div className="relative flex-1 max-w-sm">
         <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
@@ -35,7 +35,7 @@ export const FleetFilters: React.FC<FleetFiltersProps> = ({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Filter by rider name or ID..."
-          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+          className="w-full pl-9 pr-3 py-2 bg-neutral-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
         />
       </div>
 
@@ -46,7 +46,7 @@ export const FleetFilters: React.FC<FleetFiltersProps> = ({
           <select
             value={selectedAction}
             onChange={(e) => onActionChange(e.target.value as ActionType | 'ALL')}
-            className="bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
+            className="bg-neutral-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
           >
             {actions.map((act) => (
               <option key={act} value={act}>
@@ -57,7 +57,7 @@ export const FleetFilters: React.FC<FleetFiltersProps> = ({
         </div>
 
         {/* Risk Filter */}
-        <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
+        <div className="flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-lg border border-slate-700">
           <span className="text-slate-400">Min Risk:</span>
           <input
             type="range"
@@ -74,7 +74,7 @@ export const FleetFilters: React.FC<FleetFiltersProps> = ({
         {/* 3D / 2D View Toggle */}
         <button
           onClick={onViewModeToggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg transition"
         >
           {viewMode === '3d' ? (
             <>

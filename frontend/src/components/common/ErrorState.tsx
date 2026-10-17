@@ -22,7 +22,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition"
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-neutral-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Retry Request

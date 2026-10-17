@@ -69,9 +69,9 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Live hero: the fleet as a city constellation */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#05080f]">
+      <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#000000]">
         <Constellation3D sessions={heroSessions} height={440} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-[#05080f] via-[#05080f]/70 to-transparent p-5 pb-12">
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-[#000000] via-[#000000]/70 to-transparent p-5 pb-12">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-cyan-400">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" /> Live fleet · {heroSessions.length} riders
           </div>
@@ -86,7 +86,7 @@ export const DashboardPage: React.FC = () => {
             <Fingerprint className="h-4 w-4" /> Open Demo Stage
           </Link>
         </div>
-        <ConstellationLegend className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#05080f] to-transparent px-5 pb-3 pt-8" />
+        <ConstellationLegend className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#000000] to-transparent px-5 pb-3 pt-8" />
       </section>
 
       {/* KPI Cards */}

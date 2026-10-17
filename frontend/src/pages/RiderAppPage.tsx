@@ -206,7 +206,7 @@ export const RiderAppPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-between p-4 md:p-6 select-none font-mono">
+    <div className="min-h-screen bg-[#000000] text-slate-100 flex flex-col justify-between p-4 md:p-6 select-none font-mono">
       {/* Rider App Mobile Shell Header */}
       <div className="w-full max-w-sm mx-auto flex items-center justify-between pb-3 border-b border-[#1e2c47]">
         <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export const RiderAppPage: React.FC = () => {
             </div>
 
             {/* Demo Simulation Controls */}
-            <div className="p-3 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-2 text-xs">
+            <div className="p-3 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-2 text-xs">
               <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold border-b border-slate-800 pb-1.5">
                 <span className="flex items-center gap-1 text-cyan-400">
                   <Sparkles className="w-3.5 h-3.5" /> Hackathon Demo Controls
@@ -283,7 +283,7 @@ export const RiderAppPage: React.FC = () => {
                     type="text"
                     value={riderId}
                     onChange={(e) => setRiderId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
+                    className="w-full bg-neutral-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
                   />
                 </div>
                 <div>
@@ -292,7 +292,7 @@ export const RiderAppPage: React.FC = () => {
                     type="text"
                     value={riderName}
                     onChange={(e) => setRiderName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
+                    className="w-full bg-neutral-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
                   />
                 </div>
               </div>
@@ -306,7 +306,7 @@ export const RiderAppPage: React.FC = () => {
                       const found = INDIAN_CITIES.find((c) => c.city === e.target.value);
                       if (found) setSelectedCity(found);
                     }}
-                    className="bg-slate-900 border border-slate-700 text-slate-200 rounded px-1.5 py-0.5 text-xs"
+                    className="bg-neutral-900 border border-slate-700 text-slate-200 rounded px-1.5 py-0.5 text-xs"
                   >
                     {INDIAN_CITIES.map((c) => (
                       <option key={c.city} value={c.city}>
@@ -347,7 +347,7 @@ export const RiderAppPage: React.FC = () => {
           /* ACTIVE SESSION SCREEN */
           <div className="space-y-4">
             {/* Session Status Banner */}
-            <div className="p-4 rounded-2xl bg-[#0c1322] border border-[#1e2c47] space-y-3">
+            <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-[#1e2c47] space-y-3">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-bold text-sm text-slate-100">{currentSession.name}</h3>
@@ -386,7 +386,7 @@ export const RiderAppPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800 text-xs space-y-1">
                   <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{currentSession.status === 'VERIFIED' ? 'Identity Verified — Session Active' : 'Behavior Verified — Session Active'}</span>
+                    <span>{currentSession.status === 'VERIFIED' ? 'Identity Verified · Session Active' : 'Behavior Verified · Session Active'}</span>
                   </div>
                   <p className="text-[11px] text-slate-300">
                     {currentSession.status === 'VERIFIED'
@@ -481,7 +481,7 @@ export const RiderAppPage: React.FC = () => {
 
             <button
               onClick={handleLogout}
-              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs transition flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs transition flex items-center justify-center gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" /> End Shift / New Session
             </button>

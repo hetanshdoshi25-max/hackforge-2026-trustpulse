@@ -119,7 +119,7 @@ export const AlertsPage: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Alert Header & Filter */}
-      <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+      <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
         <div className="flex items-center gap-2">
           <BellRing className="w-5 h-5 text-rose-400" />
           <div>
@@ -135,7 +135,7 @@ export const AlertsPage: React.FC = () => {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as AlertType | 'ALL')}
-            className="bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-3 rounded-lg focus:outline-none focus:border-cyan-500"
+            className="bg-neutral-900 border border-slate-700 text-slate-200 py-1.5 px-3 rounded-lg focus:outline-none focus:border-cyan-500"
           >
             <option value="ALL">All Alert Types</option>
             <option value="SELFIE_SUBMITTED">SELFIE_SUBMITTED</option>
@@ -158,7 +158,7 @@ export const AlertsPage: React.FC = () => {
           {filteredAlerts.map((alert, idx) => (
             <div
               key={`${alert.session_id}-${idx}`}
-              className="bg-[#0c1322] border border-[#1e2c47] hover:border-slate-700 rounded-xl p-4 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+              className="bg-[#0a0a0a] border border-[#1e2c47] hover:border-slate-700 rounded-xl p-4 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
             >
               <div className="flex items-start gap-3.5 min-w-0">
                 <div
@@ -238,7 +238,7 @@ export const AlertsPage: React.FC = () => {
           onClick={() => setActiveAlert(null)}
         >
           <div
-            className="relative w-full max-w-2xl bg-[#0c1322] border border-[#1e2c47] rounded-xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -249,7 +249,7 @@ export const AlertsPage: React.FC = () => {
             </button>
 
             <div className="flex items-center gap-3 pb-4 border-b border-[#1e2c47] mb-4">
-              <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400">
+              <div className="w-10 h-10 rounded-lg bg-neutral-800 border border-slate-700 flex items-center justify-center text-cyan-400">
                 <User className="w-5 h-5" />
               </div>
               <div>
@@ -264,7 +264,7 @@ export const AlertsPage: React.FC = () => {
 
             <div className="space-y-4 text-xs font-mono">
               {/* Selfie Frame Display */}
-              <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col items-center justify-center">
+              <div className="p-4 rounded-xl bg-neutral-900/90 border border-slate-800 flex flex-col items-center justify-center">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 font-semibold">
                   Submitted Live Selfie Verification Frame
                 </div>
@@ -297,7 +297,7 @@ export const AlertsPage: React.FC = () => {
               </div>
 
               {/* Behavioral Anomaly Explanation */}
-              <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-2">
                 <span className="text-slate-400 uppercase text-[10px] tracking-wider block font-semibold">
                   Decision Reasoning
                 </span>
@@ -315,7 +315,7 @@ export const AlertsPage: React.FC = () => {
               {activeAlert.signals && Object.keys(activeAlert.signals).length > 0 && (
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   {Object.entries(activeAlert.signals).map(([grp, info]) => (
-                    <div key={grp} className="p-2.5 rounded bg-slate-900 border border-slate-800">
+                    <div key={grp} className="p-2.5 rounded bg-neutral-900 border border-slate-800">
                       <div className="flex items-center justify-between font-semibold text-slate-200 capitalize">
                         <span>{grp} Rhythm</span>
                         <span className="text-cyan-400">{info.match}% match</span>

@@ -4,20 +4,20 @@
 
 export function formatPercent(value: number | null | undefined, decimals = 1): string {
   if (value === null || value === undefined || isNaN(value)) {
-    return '—';
+    return '-';
   }
   return `${value.toFixed(decimals)}%`;
 }
 
 export function formatScore(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) {
-    return '—';
+    return '-';
   }
   return `${Math.round(value)}`;
 }
 
 export function formatDateTime(tsSeconds: number | null | undefined): string {
-  if (!tsSeconds || isNaN(tsSeconds)) return '—';
+  if (!tsSeconds || isNaN(tsSeconds)) return '-';
   const d = new Date(tsSeconds * 1000);
   return d.toLocaleString(undefined, {
     month: 'short',
@@ -29,7 +29,7 @@ export function formatDateTime(tsSeconds: number | null | undefined): string {
 }
 
 export function formatRelativeTime(tsSeconds: number | null | undefined): string {
-  if (!tsSeconds || isNaN(tsSeconds)) return '—';
+  if (!tsSeconds || isNaN(tsSeconds)) return '-';
   const now = Date.now() / 1000;
   const diff = now - tsSeconds;
 

@@ -23,7 +23,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
           {Array.from({ length: rows }).map((_, i) => (
             <div
               key={i}
-              className="h-4 bg-slate-800 rounded animate-pulse"
+              className="h-4 bg-neutral-800 rounded animate-pulse"
               style={{ width: `${100 - i * 15}%` }}
             />
           ))}

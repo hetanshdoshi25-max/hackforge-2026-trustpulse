@@ -10,7 +10,7 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ type, value, size = 'sm' }) => {
   let label = value;
-  let badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+  let badgeClass = 'bg-neutral-800 text-slate-300 border-slate-700';
 
   if (type === 'action') {
     const meta = getActionMeta(value as ActionType);

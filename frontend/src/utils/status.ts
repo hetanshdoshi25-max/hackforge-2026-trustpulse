@@ -51,9 +51,9 @@ export function getActionMeta(action: ActionType | string): {
     default:
       return {
         label: action || 'UNKNOWN',
-        badgeClass: 'bg-slate-900 text-slate-400 border-slate-700',
+        badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700',
         textColor: 'text-slate-400',
-        bgColor: 'bg-slate-900',
+        bgColor: 'bg-neutral-900',
         borderColor: 'border-slate-700',
       };
   }
@@ -73,7 +73,7 @@ export function getStatusMeta(status: SessionStatusType | string): {
     case 'BLOCKED':
       return { label: 'Blocked', badgeClass: 'bg-rose-950/60 text-rose-400 border-rose-700/80' };
     default:
-      return { label: status || '—', badgeClass: 'bg-slate-900 text-slate-400 border-slate-700' };
+      return { label: status || '-', badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700' };
   }
 }
 
@@ -93,12 +93,12 @@ export function getAlertMeta(type: AlertType | string): {
     case 'PIN_LOCKOUT':
       return { label: 'PIN Lockout', badgeClass: 'bg-rose-950/60 text-rose-300 border-rose-700/80' };
     default:
-      return { label: type || 'Alert', badgeClass: 'bg-slate-900 text-slate-400 border-slate-700' };
+      return { label: type || 'Alert', badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700' };
   }
 }
 
 /**
- * Status palette, validated with the dataviz validator on the dark surface (#070b14):
+ * Status palette, validated with the dataviz validator on the dark surface (#000000):
  * CVD-separable, normal-vision dE >= 15, >= 3:1 contrast. Always shown with a label/icon.
  */
 export const ACTION_HEX: Record<string, string> = {

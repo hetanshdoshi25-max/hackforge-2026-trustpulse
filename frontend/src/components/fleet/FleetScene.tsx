@@ -75,7 +75,7 @@ const RiderMarker: React.FC<{
       {/* Label for selected marker */}
       {isSelected && (
         <Html distanceFactor={12} position={[0, 0.12, 0]} center>
-          <div className="bg-slate-900/90 border border-slate-700 px-2 py-1 rounded text-[11px] font-mono text-white whitespace-nowrap shadow-xl pointer-events-none">
+          <div className="bg-neutral-900/90 border border-slate-700 px-2 py-1 rounded text-[11px] font-mono text-white whitespace-nowrap shadow-xl pointer-events-none">
             <span className="font-bold text-cyan-400">{session.name}</span> · {session.city || 'Unknown'} ·{' '}
             <span style={{ color }}>{session.trust} Trust</span>
           </div>
@@ -100,7 +100,7 @@ const Globe: React.FC = () => {
       <mesh ref={globeRef}>
         <sphereGeometry args={[2.5, 48, 48]} />
         <meshStandardMaterial
-          color="#081020"
+          color="#080808"
           roughness={0.8}
           metalness={0.2}
           wireframe={false}
@@ -153,7 +153,7 @@ export const FleetScene: React.FC<FleetSceneProps> = ({
   }, [sessions]);
 
   return (
-    <div className="w-full h-full min-h-[480px] relative bg-[#040812] rounded-xl overflow-hidden border border-[#1e2c47]">
+    <div className="w-full h-full min-h-[480px] relative bg-[#030303] rounded-xl overflow-hidden border border-[#1e2c47]">
       <Canvas
         camera={{ position: [0, 1.8, 5.2], fov: 45 }}
         style={{ width: '100%', height: '100%' }}
@@ -184,7 +184,7 @@ export const FleetScene: React.FC<FleetSceneProps> = ({
       </Canvas>
 
       {/* Tactical overlay HUD info */}
-      <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-300 pointer-events-none">
+      <div className="absolute top-3 left-3 bg-neutral-900/80 backdrop-blur-sm border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-300 pointer-events-none">
         <div className="text-cyan-400 font-bold text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           Tactical Spatial Globe

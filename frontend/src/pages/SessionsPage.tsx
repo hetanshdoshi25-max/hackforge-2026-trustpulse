@@ -118,7 +118,7 @@ export const SessionsPage: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Controls Bar */}
-      <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs font-mono">
+      <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs font-mono">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
           <input
@@ -126,7 +126,7 @@ export const SessionsPage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by ID, name, session or city..."
-            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            className="w-full pl-9 pr-3 py-2 bg-neutral-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
           />
         </div>
 
@@ -136,7 +136,7 @@ export const SessionsPage: React.FC = () => {
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value as ActionType | 'ALL')}
-              className="bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
+              className="bg-neutral-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
             >
               <option value="ALL">All Actions</option>
               <option value="ALLOW">ALLOW</option>
@@ -151,7 +151,7 @@ export const SessionsPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as SessionStatusType | 'ALL')}
-              className="bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
+              className="bg-neutral-900 border border-slate-700 text-slate-200 py-1.5 px-2.5 rounded-lg focus:outline-none focus:border-cyan-500"
             >
               <option value="ALL">All Statuses</option>
               <option value="ACTIVE">ACTIVE</option>
@@ -167,7 +167,7 @@ export const SessionsPage: React.FC = () => {
               className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-1 transition ${
                 sortBy === 'time'
                   ? 'bg-cyan-950/80 text-cyan-300 border-cyan-800'
-                  : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
+                  : 'bg-neutral-900 text-slate-400 border-slate-700 hover:text-slate-200'
               }`}
             >
               Time <ArrowUpDown className="w-3 h-3" />
@@ -177,7 +177,7 @@ export const SessionsPage: React.FC = () => {
               className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-1 transition ${
                 sortBy === 'risk'
                   ? 'bg-cyan-950/80 text-cyan-300 border-cyan-800'
-                  : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
+                  : 'bg-neutral-900 text-slate-400 border-slate-700 hover:text-slate-200'
               }`}
             >
               Risk <ArrowUpDown className="w-3 h-3" />
@@ -193,10 +193,10 @@ export const SessionsPage: React.FC = () => {
           description="No recent sessions match the search and filter query."
         />
       ) : (
-        <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#0e1628] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
+              <thead className="bg-[#0f0f0f] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="py-3 px-3">Session</th>
                   <th className="py-3 px-3">Rider</th>
@@ -214,7 +214,7 @@ export const SessionsPage: React.FC = () => {
                   <tr
                     key={session.session_id}
                     onClick={() => setSelectedSession(session)}
-                    className="hover:bg-slate-800/40 transition cursor-pointer group"
+                    className="hover:bg-neutral-800/40 transition cursor-pointer group"
                   >
                     <td className="py-3 px-3 text-cyan-400 font-semibold">
                       {session.session_id.slice(0, 8)}
@@ -277,7 +277,7 @@ export const SessionsPage: React.FC = () => {
           onClick={() => setSelectedSession(null)}
         >
           <div
-            className="w-full max-w-lg bg-[#0c1322] border-l border-[#1e2c47] h-full p-6 flex flex-col justify-between overflow-y-auto shadow-2xl"
+            className="w-full max-w-lg bg-[#0a0a0a] border-l border-[#1e2c47] h-full p-6 flex flex-col justify-between overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-5 text-xs font-mono">
@@ -299,7 +299,7 @@ export const SessionsPage: React.FC = () => {
               </div>
 
               {/* Identity & Status */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-neutral-900 border border-slate-800">
                 <div>
                   <span className="text-slate-400 text-[10px] block">Rider</span>
                   <span className="text-slate-100 font-semibold">{selectedSession.name}</span>
@@ -315,7 +315,7 @@ export const SessionsPage: React.FC = () => {
               </div>
 
               {/* Trust & Risk Breakdown */}
-              <div className="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-lg bg-neutral-900 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300 font-semibold">Trust Similarity:</span>
                   <TrustScore score={selectedSession.trust} size="md" />
@@ -328,7 +328,7 @@ export const SessionsPage: React.FC = () => {
               </div>
 
               {/* Verdict & Reasons */}
-              <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-2">
                 <span className="text-slate-400 uppercase text-[10px] tracking-wider block font-semibold">
                   Explainable Verdict
                 </span>
@@ -345,12 +345,12 @@ export const SessionsPage: React.FC = () => {
               </div>
 
               {/* Telemetry Context */}
-              <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-2">
                 <span className="text-slate-400 uppercase text-[10px] tracking-wider block font-semibold">
                   Environment Context
                 </span>
                 <div className="grid grid-cols-2 gap-2 text-slate-300 text-[11px]">
-                  <div>City: <strong>{selectedSession.city || '—'}</strong></div>
+                  <div>City: <strong>{selectedSession.city || '-'}</strong></div>
                   <div>GPS: <strong>{formatCoords(selectedSession.lat, selectedSession.lon)}</strong></div>
                   <div>Device ID: <span className="font-mono text-slate-400">{selectedSession.device_id?.slice(0, 10)}...</span></div>
                   <div>Enrolling: <strong>{selectedSession.enrolling ? 'Yes' : 'No'}</strong></div>
@@ -367,7 +367,7 @@ export const SessionsPage: React.FC = () => {
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {Object.entries(selectedSession.signals).map(([grp, info]) => (
-                      <div key={grp} className="p-2.5 rounded bg-slate-900 border border-slate-800">
+                      <div key={grp} className="p-2.5 rounded bg-neutral-900 border border-slate-800">
                         <div className="flex items-center justify-between text-xs">
                           <span className="capitalize font-semibold text-slate-200">{grp}</span>
                           <span className="text-cyan-400 font-bold">{info.match}% match</span>

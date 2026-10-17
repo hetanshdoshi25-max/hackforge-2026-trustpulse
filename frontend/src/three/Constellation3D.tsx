@@ -316,8 +316,8 @@ export const Constellation3D: React.FC<Constellation3DProps> = ({
   return (
     <div className="relative overflow-hidden" style={{ height }}>
       <Canvas camera={{ position: [0, 2.6, 3.4], fov: 42 }} dpr={[1, 2]}>
-        <color attach="background" args={['#05080f']} />
-        <fog attach="fog" args={['#05080f', 4, 9]} />
+        <color attach="background" args={['#000000']} />
+        <fog attach="fog" args={['#000000', 4, 9]} />
         <Grid
           infiniteGrid
           cellSize={0.13}
@@ -369,7 +369,7 @@ export const Constellation3D: React.FC<Constellation3DProps> = ({
         {focus && (
           <div
             ref={registerLabel(labelEls, 'tooltip')}
-            className="invisible absolute left-0 top-0 whitespace-nowrap rounded-lg border border-slate-600 bg-[#070b14]/95 px-2.5 py-1.5 text-[11px] text-slate-200 shadow-xl"
+            className="invisible absolute left-0 top-0 whitespace-nowrap rounded-lg border border-slate-600 bg-[#000000]/95 px-2.5 py-1.5 text-[11px] text-slate-200 shadow-xl"
           >
             <div className="font-semibold text-slate-100">{focus.session.name}</div>
             <div className="text-slate-400">

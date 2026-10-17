@@ -92,7 +92,7 @@ export const AppShell: React.FC = () => {
   }, [checkHealthAndAlerts]);
 
   return (
-    <div className="flex h-screen w-full bg-[#070b14] text-slate-100 overflow-hidden">
+    <div className="flex h-screen w-full bg-[#000000] text-slate-100 overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex">
         <Sidebar
@@ -122,7 +122,7 @@ export const AppShell: React.FC = () => {
           isRefreshing={isRefreshing}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#070b14]">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#000000]">
           <Outlet context={{ refreshGlobal: checkHealthAndAlerts, alertCount }} />
         </main>
       </div>

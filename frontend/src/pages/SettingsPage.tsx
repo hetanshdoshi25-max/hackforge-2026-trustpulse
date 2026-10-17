@@ -66,7 +66,7 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="max-w-3xl space-y-6">
       {/* Settings Card */}
-      <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-6 space-y-6">
+      <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-6 space-y-6">
         <div className="flex items-center gap-3 pb-4 border-b border-[#1e2c47]">
           <div className="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-800 flex items-center justify-center text-cyan-400">
             <Settings className="w-5 h-5" />
@@ -96,7 +96,7 @@ export const SettingsPage: React.FC = () => {
                   <strong className="text-emerald-400">Higher = More Open</strong> (frictionless).
                 </p>
               </div>
-              <span className="text-lg font-bold font-mono text-cyan-400 px-3 py-1 rounded bg-slate-900 border border-slate-700">
+              <span className="text-lg font-bold font-mono text-cyan-400 px-3 py-1 rounded bg-neutral-900 border border-slate-700">
                 {thresholdInput}
               </span>
             </div>
@@ -108,7 +108,7 @@ export const SettingsPage: React.FC = () => {
               step="5"
               value={thresholdInput}
               onChange={(e) => setThresholdInput(Number(e.target.value))}
-              className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="w-full h-2.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
             />
 
             <div className="flex justify-between text-[10px] text-slate-400">
@@ -119,7 +119,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Min Enroll Parameter (Read-only engine constant) */}
-          <div className="p-4 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1">
+          <div className="p-4 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-slate-200">
                 Baseline Enrollment Requirement
@@ -149,7 +149,7 @@ export const SettingsPage: React.FC = () => {
               disabled={isSaving || !hasChanged}
               className={`px-4 py-2 text-xs font-mono font-medium rounded-lg transition flex items-center gap-2 ${
                 !hasChanged
-                  ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  ? 'bg-neutral-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                   : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-950'
               }`}
             >
@@ -163,7 +163,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Helper Card linking to Tradeoff Curve */}
-      <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-between text-xs font-mono">
+      <div className="p-4 rounded-xl bg-neutral-900/50 border border-slate-800 flex items-center justify-between text-xs font-mono">
         <div>
           <span className="font-semibold text-slate-200 block">
             Want to see the trade-off curve across 500 simulated riders?

@@ -96,7 +96,7 @@ export const PinPad: React.FC<PinPadProps> = ({ onPinComplete, disabled = false 
                 type="button"
                 onClick={handleClear}
                 disabled={disabled || pinDigits.length === 0}
-                className="h-16 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 flex items-center justify-center text-slate-300 font-mono text-xs font-semibold active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="h-16 rounded-2xl bg-neutral-800/80 hover:bg-slate-700 border border-slate-700/80 flex items-center justify-center text-slate-300 font-mono text-xs font-semibold active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="Clear PIN entry"
               >
                 {k === '⌫' ? <Delete className="w-5 h-5 text-slate-400" /> : 'CLEAR'}
@@ -112,7 +112,7 @@ export const PinPad: React.FC<PinPadProps> = ({ onPinComplete, disabled = false 
               onPointerUp={handlePointerUp}
               onPointerCancel={(e) => pendingRef.current.delete(e.pointerId)}
               disabled={disabled || pinDigits.length >= 4}
-              className="h-16 rounded-2xl bg-[#0f192d] hover:bg-[#15233e] active:bg-cyan-950/80 border border-[#223558] flex flex-col items-center justify-center text-slate-100 font-mono text-2xl font-bold active:scale-95 transition shadow-sm touch-manipulation disabled:opacity-50"
+              className="h-16 rounded-2xl bg-[#121212] hover:bg-[#1c1c1c] active:bg-cyan-950/80 border border-[#223558] flex flex-col items-center justify-center text-slate-100 font-mono text-2xl font-bold active:scale-95 transition shadow-sm touch-manipulation disabled:opacity-50"
             >
               <span>{k}</span>
             </button>

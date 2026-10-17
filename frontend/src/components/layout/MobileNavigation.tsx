@@ -45,7 +45,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
       />
 
       {/* Drawer */}
-      <div className="relative w-72 max-w-[80vw] bg-[#0c1322] border-r border-[#1e2c47] p-4 flex flex-col h-full z-10">
+      <div className="relative w-72 max-w-[80vw] bg-[#0a0a0a] border-r border-[#1e2c47] p-4 flex flex-col h-full z-10">
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center text-cyan-400">
@@ -79,7 +79,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-mono tracking-wide ${
                     isActive
                       ? 'bg-cyan-950/70 text-cyan-300 border border-cyan-800 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/40'
                   }`
                 }
               >
@@ -108,7 +108,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           </div>
         </nav>
 
-        <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono mt-auto">
+        <div className="p-3 rounded-lg bg-neutral-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono mt-auto">
           <div>TrustPulse Platform</div>
           <div className="text-[10px] text-slate-400">HackForge 2026</div>
         </div>

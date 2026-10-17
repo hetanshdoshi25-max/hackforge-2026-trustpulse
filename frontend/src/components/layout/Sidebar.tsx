@@ -35,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCoun
 
   return (
     <aside
-      className={`relative flex flex-col shrink-0 bg-[#0c1322] border-r border-[#1e2c47] transition-all duration-300 z-30 select-none ${
+      className={`relative flex flex-col shrink-0 bg-[#0a0a0a] border-r border-[#1e2c47] transition-all duration-300 z-30 select-none ${
         collapsed ? 'w-18' : 'w-64'
       }`}
     >
@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCoun
         <button
           onClick={onToggle}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+          className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-neutral-800 transition"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCoun
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-mono tracking-wide transition-colors ${
                   isActive
                     ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-800/60 font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-neutral-800/50'
                 }`
               }
               title={collapsed ? item.label : undefined}
@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCoun
 
       {/* Footer */}
       {!collapsed && (
-        <div className="p-3 m-2 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono">
+        <div className="p-3 m-2 rounded-lg bg-neutral-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono">
           <div className="text-slate-300 font-semibold mb-0.5">HackForge 2026</div>
           <div className="text-[10px] text-slate-400">Team Braniacs · Track: Trust Juggler</div>
         </div>

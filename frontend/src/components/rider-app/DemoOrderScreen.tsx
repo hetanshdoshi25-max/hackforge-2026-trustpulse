@@ -177,7 +177,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
   return (
     <div className="w-full max-w-sm mx-auto space-y-4 text-xs font-mono">
       {/* Demo notice badge */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
+      <div className="flex items-center justify-between text-[11px] text-slate-400 bg-neutral-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
         <span className="flex items-center gap-1.5 text-cyan-400">
           <Navigation className="w-3.5 h-3.5" /> Demo Order Simulation
         </span>
@@ -190,7 +190,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
       </div>
 
       {/* Order Card */}
-      <div className="p-4 rounded-2xl bg-[#0f192d] border border-[#223558] shadow-lg space-y-3">
+      <div className="p-4 rounded-2xl bg-[#121212] border border-[#223558] shadow-lg space-y-3">
         <div className="flex items-start justify-between pb-3 border-b border-[#223558]">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800 flex items-center justify-center text-cyan-400">
@@ -225,7 +225,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
           </div>
         </div>
 
-        <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300">
+        <div className="p-2.5 rounded-lg bg-neutral-900/60 border border-slate-800 text-[11px] text-slate-300">
           <span className="text-slate-400 text-[10px] block">ITEMS</span>
           {order.items}
         </div>
@@ -241,7 +241,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             style={{ touchAction: 'none' }}
-            className="relative w-full h-14 rounded-2xl bg-[#091122] border border-[#223558] overflow-hidden flex items-center p-1 cursor-grab active:cursor-grabbing select-none"
+            className="relative w-full h-14 rounded-2xl bg-[#0a0a0a] border border-[#223558] overflow-hidden flex items-center p-1 cursor-grab active:cursor-grabbing select-none"
           >
             {/* Animated track fill */}
             <div
@@ -280,7 +280,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
           </p>
           <button
             onClick={handleNextDemoOrder}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 text-xs"
+            className="px-3 py-1.5 rounded-lg bg-neutral-800 text-slate-200 border border-slate-700 hover:bg-slate-700 text-xs"
           >
             Load Another Order
           </button>

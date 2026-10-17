@@ -18,7 +18,7 @@ export const FleetFallback: React.FC<FleetFallbackProps> = ({
   onSelectSession,
 }) => {
   return (
-    <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl overflow-hidden flex flex-col">
       <div className="p-4 border-b border-[#1e2c47] flex items-center justify-between">
         <h3 className="text-sm font-bold font-mono text-slate-100 flex items-center gap-2">
           <Navigation className="w-4 h-4 text-cyan-400" />
@@ -31,7 +31,7 @@ export const FleetFallback: React.FC<FleetFallbackProps> = ({
 
       <div className="overflow-x-auto max-h-[600px]">
         <table className="w-full text-left text-xs font-mono">
-          <thead className="sticky top-0 bg-[#0e1628] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
+          <thead className="sticky top-0 bg-[#0f0f0f] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
             <tr>
               <th className="py-2.5 px-3">Rider</th>
               <th className="py-2.5 px-3">City / GPS Coordinates</th>
@@ -52,12 +52,12 @@ export const FleetFallback: React.FC<FleetFallbackProps> = ({
                   className={`cursor-pointer transition ${
                     isSelected
                       ? 'bg-cyan-950/50 border-l-2 border-cyan-400'
-                      : 'hover:bg-slate-800/40'
+                      : 'hover:bg-neutral-800/40'
                   }`}
                 >
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+                      <div className="w-7 h-7 rounded bg-neutral-800 border border-slate-700 flex items-center justify-center text-slate-300">
                         <User className="w-3.5 h-3.5" />
                       </div>
                       <div>

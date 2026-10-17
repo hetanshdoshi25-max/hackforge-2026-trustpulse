@@ -1,8 +1,9 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 
 import { RiderAppPage } from './pages/RiderAppPage';
+import { LandingPage } from './pages/LandingPage';
 import { LoadingState } from './components/common/LoadingState';
 
 // Ops/3D pages load on demand, so the phone opening /rider never downloads three.js.
@@ -24,9 +25,11 @@ export function App() {
     <BrowserRouter>
       <Suspense fallback={<LoadingState message="Loading…" />}>
       <Routes>
+        {/* Entry: choose rider app or ops dashboard */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Operations Dashboard Routes (wrapped in AppShell) */}
         <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/fleet" element={<FleetPage />} />
           <Route path="/riders" element={<RidersPage />} />

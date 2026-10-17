@@ -140,15 +140,15 @@ export const RiderDetailPage: React.FC = () => {
       </div>
 
       {/* Rider Header Card */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-sm">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-neutral-800 border border-slate-700 flex items-center justify-center text-cyan-400 shrink-0 shadow-md">
             <User className="w-6 h-6" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="text-xl font-bold font-mono text-slate-100">{rider.name}</h2>
-              <span className="text-xs font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+              <span className="text-xs font-mono text-slate-400 bg-neutral-900 px-2 py-0.5 rounded border border-slate-800">
                 {rider.rider_id}
               </span>
               {rider.enrolled ? (
@@ -180,14 +180,14 @@ export const RiderDetailPage: React.FC = () => {
 
         {/* Latest Scores Quick View */}
         {latestSession && (
-          <div className="flex items-center gap-4 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-4 bg-neutral-900/80 p-3 rounded-lg border border-slate-800">
             <div>
               <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
                 Current Trust
               </span>
               <TrustScore score={latestSession.trust} size="md" />
             </div>
-            <div className="h-8 w-px bg-slate-800" />
+            <div className="h-8 w-px bg-neutral-800" />
             <div>
               <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
                 Current Decision
@@ -200,7 +200,7 @@ export const RiderDetailPage: React.FC = () => {
 
       {/* Latest Session Analysis & Reason Breakdown */}
       {latestSession && (
-        <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+        <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-cyan-400" />
@@ -214,7 +214,7 @@ export const RiderDetailPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2 text-xs font-mono">
+            <div className="p-3.5 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-2 text-xs font-mono">
               <span className="text-slate-400 uppercase text-[10px] tracking-wider block">
                 Risk Attribution
               </span>
@@ -228,7 +228,7 @@ export const RiderDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="md:col-span-2 p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2 text-xs font-mono">
+            <div className="md:col-span-2 p-3.5 rounded-lg bg-neutral-900/60 border border-slate-800 space-y-2 text-xs font-mono">
               <span className="text-slate-400 uppercase text-[10px] tracking-wider block">
                 Decision Verdict & Explanations
               </span>
@@ -245,7 +245,7 @@ export const RiderDetailPage: React.FC = () => {
 
           {/* 3D behavioural fingerprint of the latest login */}
           {latestSession.signals && Object.keys(latestSession.signals).length > 0 && (
-            <div className="rounded-xl border border-slate-800 bg-[#05080f] p-3">
+            <div className="rounded-xl border border-slate-800 bg-[#000000] p-3">
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-xs uppercase tracking-wider text-slate-400">Behavioural fingerprint · latest login</span>
                 <Link to={`/stage?rider=${encodeURIComponent(latestSession.rider_id)}`} className="text-xs text-cyan-400 hover:text-cyan-300">
@@ -267,7 +267,7 @@ export const RiderDetailPage: React.FC = () => {
                 {Object.entries(latestSession.signals).map(([group, data]) => (
                   <div
                     key={group}
-                    className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 flex flex-col justify-between"
+                    className="p-3 rounded-lg bg-neutral-900/80 border border-slate-800 flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="capitalize text-slate-300 font-semibold">{group}</span>
@@ -287,7 +287,7 @@ export const RiderDetailPage: React.FC = () => {
       )}
 
       {/* Trust & Risk Chronological Timeline Chart */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-cyan-400" />
@@ -321,7 +321,7 @@ export const RiderDetailPage: React.FC = () => {
                     if (active && payload && payload.length) {
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs font-mono text-slate-200 shadow-xl">
+                        <div className="bg-neutral-900 border border-slate-700 p-2.5 rounded-lg text-xs font-mono text-slate-200 shadow-xl">
                           <div className="text-slate-400 mb-1">{d.time} · {d.city}</div>
                           <div className="text-emerald-400">Trust Score: {d.trust}</div>
                           <div className="text-rose-400">Risk Score: {d.risk}%</div>
@@ -361,13 +361,13 @@ export const RiderDetailPage: React.FC = () => {
       </div>
 
       {/* Session History Table */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
         <h3 className="font-mono font-bold text-sm text-slate-100">
           Full Historical Sessions
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-[#0e1628] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
+            <thead className="bg-[#0f0f0f] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-2.5 px-3">Session ID</th>
                 <th className="py-2.5 px-3">Location</th>
@@ -381,7 +381,7 @@ export const RiderDetailPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-[#1e2c47]/50">
               {rider.history.slice().reverse().map((session) => (
-                <tr key={session.session_id} className="hover:bg-slate-800/40 transition">
+                <tr key={session.session_id} className="hover:bg-neutral-800/40 transition">
                   <td className="py-3 px-3 font-semibold text-slate-200">
                     {session.session_id.slice(0, 8)}...
                   </td>

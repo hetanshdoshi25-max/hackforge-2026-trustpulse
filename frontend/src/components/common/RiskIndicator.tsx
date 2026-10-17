@@ -15,7 +15,7 @@ export const RiskIndicator: React.FC<RiskIndicatorProps> = ({
   compact = false,
 }) => {
   if (risk === null || risk === undefined || isNaN(risk)) {
-    return <span className="font-mono text-slate-500">—</span>;
+    return <span className="font-mono text-slate-500">-</span>;
   }
 
   const overallColor = getRiskColor(risk);
@@ -45,14 +45,14 @@ export const RiskIndicator: React.FC<RiskIndicatorProps> = ({
           <span>
             Beh:{' '}
             <strong className={behaviourRisk !== null && behaviourRisk !== undefined ? 'text-slate-200' : 'text-slate-500'}>
-              {behaviourRisk !== null && behaviourRisk !== undefined ? `${behaviourRisk}%` : '—'}
+              {behaviourRisk !== null && behaviourRisk !== undefined ? `${behaviourRisk}%` : '-'}
             </strong>
           </span>
           <span>·</span>
           <span>
             Ctx:{' '}
             <strong className={contextRisk !== null && contextRisk !== undefined ? 'text-slate-200' : 'text-slate-500'}>
-              {contextRisk !== null && contextRisk !== undefined ? `${contextRisk}%` : '—'}
+              {contextRisk !== null && contextRisk !== undefined ? `${contextRisk}%` : '-'}
             </strong>
           </span>
         </div>

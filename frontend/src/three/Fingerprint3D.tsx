@@ -241,7 +241,7 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
             <div
               key={name}
               ref={registerLabel(labelEls, name)}
-              className="invisible absolute left-0 top-0 whitespace-nowrap rounded-md border border-rose-500/60 bg-[#070b14]/90 px-2 py-0.5 text-[12px] font-medium text-slate-100 shadow-lg"
+              className="invisible absolute left-0 top-0 whitespace-nowrap rounded-md border border-rose-500/60 bg-[#000000]/90 px-2 py-0.5 text-[12px] font-medium text-slate-100 shadow-lg"
             >
               {featureLabel(name)} <span className="text-slate-400">· {(z[name] ?? 0).toFixed(1)}σ</span>
             </div>

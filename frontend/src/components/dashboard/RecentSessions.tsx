@@ -17,7 +17,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
   onSelectSession,
 }) => {
   return (
-    <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-4 md:p-5 flex flex-col h-full">
+    <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-4 md:p-5 flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm md:text-base font-bold font-mono tracking-wide text-slate-100">
@@ -53,11 +53,11 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
               <tr
                 key={session.session_id}
                 onClick={() => onSelectSession?.(session)}
-                className="hover:bg-slate-800/40 transition cursor-pointer group"
+                className="hover:bg-neutral-800/40 transition cursor-pointer group"
               >
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
+                    <div className="w-7 h-7 rounded-md bg-neutral-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
                       <User className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">

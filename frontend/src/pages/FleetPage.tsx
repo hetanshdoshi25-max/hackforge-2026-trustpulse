@@ -111,16 +111,16 @@ export const FleetPage: React.FC = () => {
             />
           )}
 
-          <ConstellationLegend className="absolute bottom-3 left-3 right-3 rounded-lg border border-slate-800 bg-slate-950/80 p-2.5 backdrop-blur-sm pointer-events-none" />
+          <ConstellationLegend className="absolute bottom-3 left-3 right-3 rounded-lg border border-slate-800 bg-neutral-950/80 p-2.5 backdrop-blur-sm pointer-events-none" />
         </div>
 
         {/* Selected rider details side panel */}
         {selectedSession && (
-          <div className="w-full lg:w-80 bg-[#0c1322] border border-[#1e2c47] rounded-xl p-4 flex flex-col justify-between shrink-0 animate-fade-in shadow-2xl">
+          <div className="w-full lg:w-80 bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-4 flex flex-col justify-between shrink-0 animate-fade-in shadow-2xl">
             <div>
               <div className="flex items-start justify-between pb-3 border-b border-[#1e2c47] mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+                  <div className="w-8 h-8 rounded-lg bg-neutral-800 border border-slate-700 flex items-center justify-center text-slate-300">
                     <User className="w-4 h-4" />
                   </div>
                   <div>
@@ -167,7 +167,7 @@ export const FleetPage: React.FC = () => {
                   <StatusBadge type="status" value={selectedSession.status} size="sm" />
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                <div className="p-2.5 rounded-lg bg-neutral-900 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Trust Score:</span>
                     <TrustScore score={selectedSession.trust} size="sm" />
@@ -180,7 +180,7 @@ export const FleetPage: React.FC = () => {
                 </div>
 
                 {selectedSession.verdict && (
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300">
+                  <div className="p-2.5 rounded-lg bg-neutral-900/60 border border-slate-800 text-[11px] text-slate-300">
                     <span className="text-slate-400 font-semibold block mb-0.5">Verdict:</span>
                     {selectedSession.verdict}
                   </div>

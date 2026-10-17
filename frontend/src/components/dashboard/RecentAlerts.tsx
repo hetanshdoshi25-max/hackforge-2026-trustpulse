@@ -11,7 +11,7 @@ interface RecentAlertsProps {
 
 export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
   return (
-    <div className="bg-[#0c1322] border border-[#1e2c47] rounded-xl p-4 md:p-5 flex flex-col h-full">
+    <div className="bg-[#0a0a0a] border border-[#1e2c47] rounded-xl p-4 md:p-5 flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BellRing className="w-4 h-4 text-rose-400" />
@@ -37,7 +37,7 @@ export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
           {alerts.slice(0, 6).map((alert, idx) => (
             <div
               key={`${alert.session_id}-${idx}`}
-              className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition flex flex-col gap-1.5"
+              className="p-3 rounded-lg bg-neutral-900/60 border border-slate-800 hover:border-slate-700 transition flex flex-col gap-1.5"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

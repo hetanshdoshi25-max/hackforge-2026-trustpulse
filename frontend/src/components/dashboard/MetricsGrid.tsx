@@ -59,7 +59,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
       subtext: 'Selfies awaiting resolution',
       icon: ShieldAlert,
       color: pendingReviews > 0 ? 'text-rose-400' : 'text-slate-400',
-      bgColor: pendingReviews > 0 ? 'bg-rose-950/40' : 'bg-slate-900/60',
+      bgColor: pendingReviews > 0 ? 'bg-rose-950/40' : 'bg-neutral-900/60',
       borderColor: pendingReviews > 0 ? 'border-rose-800/60' : 'border-slate-800',
     },
     {
@@ -73,7 +73,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
     },
     {
       label: 'Strictness Threshold',
-      value: threshold !== null ? threshold : '—',
+      value: threshold !== null ? threshold : '-',
       subtext: threshold !== null && threshold <= 40 ? 'High strictness' : 'Balanced gate',
       icon: Sliders,
       color: 'text-violet-400',
@@ -89,7 +89,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
         return (
           <div
             key={index}
-            className={`p-3.5 rounded-xl border ${kpi.borderColor} ${kpi.bgColor} bg-slate-900/50 flex flex-col justify-between transition-all hover:border-slate-600`}
+            className={`p-3.5 rounded-xl border ${kpi.borderColor} ${kpi.bgColor} bg-neutral-900/50 flex flex-col justify-between transition-all hover:border-slate-600`}
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono tracking-wider uppercase text-slate-400">

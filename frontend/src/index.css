@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes landingpulse {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+}
+
 @keyframes stagebanner {
   from { opacity: 0; transform: translateY(-16px) scale(0.96); }
   to { opacity: 1; transform: none; }
@@ -7,10 +12,10 @@
 
 @layer base {
   :root {
-    --bg-base: #070b14;
-    --bg-surface: #0c1322;
-    --bg-card: #111b2e;
-    --bg-card-hover: #162238;
+    --bg-base: #000000;
+    --bg-surface: #0a0a0a;
+    --bg-card: #111111;
+    --bg-card-hover: #171717;
     --border-subtle: #1e2c47;
     --border-strong: #2c3f64;
     
@@ -56,7 +61,7 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #090e18;
+    background: #050505;
   }
   ::-webkit-scrollbar-thumb {
     background: #1e2c47;

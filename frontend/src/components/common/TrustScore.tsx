@@ -9,7 +9,7 @@ interface TrustScoreProps {
 
 export const TrustScore: React.FC<TrustScoreProps> = ({ score, size = 'md', showLabel = false }) => {
   if (score === null || score === undefined || isNaN(score)) {
-    return <span className="font-mono text-slate-500">—</span>;
+    return <span className="font-mono text-slate-500">-</span>;
   }
 
   const color = getTrustColor(score);
@@ -27,7 +27,7 @@ export const TrustScore: React.FC<TrustScoreProps> = ({ score, size = 'md', show
 
   if (size === 'lg') {
     return (
-      <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-900/60 border border-slate-800">
+      <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-neutral-900/60 border border-slate-800">
         <span className="font-mono font-extrabold text-3xl" style={{ color }}>
           {score}
         </span>

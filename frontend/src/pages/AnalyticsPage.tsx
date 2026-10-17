@@ -150,13 +150,13 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
+        <div className="text-xs font-mono text-slate-400 bg-neutral-900/80 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
           Default Engine Threshold: <strong className="text-cyan-400">{metrics.default_threshold}</strong>
         </div>
       </div>
 
       {/* Threshold Slider Card */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-5">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-cyan-400" />
@@ -177,7 +177,7 @@ export const AnalyticsPage: React.FC = () => {
             <span className="text-rose-400 font-bold flex items-center gap-1">
               ◀ STRICT (High Security / Higher Interruption)
             </span>
-            <span className="text-slate-100 font-mono font-extrabold text-base px-3 py-1 rounded bg-slate-900 border border-slate-700">
+            <span className="text-slate-100 font-mono font-extrabold text-base px-3 py-1 rounded bg-neutral-900 border border-slate-700">
               Selected: {selectedThreshold}
             </span>
             <span className="text-emerald-400 font-bold flex items-center gap-1">
@@ -192,7 +192,7 @@ export const AnalyticsPage: React.FC = () => {
             step="5"
             value={selectedThreshold}
             onChange={(e) => setSelectedThreshold(Number(e.target.value))}
-            className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+            className="w-full h-2.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
           />
 
           <div className="flex justify-between text-[10px] font-mono text-slate-400">
@@ -211,28 +211,28 @@ export const AnalyticsPage: React.FC = () => {
         {/* Preview of Tradeoff Metrics at Selected Threshold */}
         {selectedPoint && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
               <span className="text-slate-400 text-[10px] block">Honest Sessions Stopped</span>
               <span className="text-lg font-bold text-amber-400">
                 {formatPercent(selectedPoint.false_lockout)}
               </span>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
               <span className="text-slate-400 text-[10px] block">Honest Riders Ever Stopped</span>
               <span className="text-lg font-bold text-amber-400">
                 {formatPercent(selectedPoint.honest_riders_ever_stopped)}
               </span>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
               <span className="text-slate-400 text-[10px] block">Rented Sessions Caught</span>
               <span className="text-lg font-bold text-emerald-400">
                 {formatPercent(selectedPoint.takeover_caught)}
               </span>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
               <span className="text-slate-400 text-[10px] block">↳ Caught on Same Device</span>
               <span className="text-lg font-bold text-cyan-400">
                 {formatPercent(selectedPoint.takeover_caught_same_device)}
@@ -254,7 +254,7 @@ export const AnalyticsPage: React.FC = () => {
             disabled={isApplying || isCurrentApplied}
             className={`px-4 py-2 text-xs font-mono font-medium rounded-lg transition flex items-center gap-2 ${
               isCurrentApplied
-                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                ? 'bg-neutral-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                 : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-950'
             }`}
           >
@@ -267,7 +267,7 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Trade-off Curve Chart */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-cyan-400" />
@@ -300,7 +300,7 @@ export const AnalyticsPage: React.FC = () => {
                   if (active && payload && payload.length) {
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg text-xs font-mono text-slate-200 shadow-xl space-y-1">
+                      <div className="bg-neutral-900 border border-slate-700 p-3 rounded-lg text-xs font-mono text-slate-200 shadow-xl space-y-1">
                         <div className="font-bold text-cyan-400 mb-1">
                           Threshold: {d.threshold}
                         </div>
@@ -356,7 +356,7 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Risk Score Separation Histogram */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-cyan-400" />
@@ -388,7 +388,7 @@ export const AnalyticsPage: React.FC = () => {
                   if (active && payload && payload.length) {
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-slate-900 border border-slate-700 p-2.5 rounded text-xs font-mono text-slate-200">
+                      <div className="bg-neutral-900 border border-slate-700 p-2.5 rounded text-xs font-mono text-slate-200">
                         <div className="text-slate-400 mb-1">Risk Range: {d.range}</div>
                         <div>Honest sessions: {d.genuinePct}% ({d.genuine.toLocaleString()})</div>
                         <div>Rented sessions: {d.takeoverPct}% ({d.takeover.toLocaleString()})</div>
@@ -409,7 +409,7 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Baseline Comparison Matrix */}
-      <div className="p-5 rounded-xl bg-[#0c1322] border border-[#1e2c47] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
           <div className="flex items-center gap-2">
             <Columns className="w-4 h-4 text-cyan-400" />
@@ -424,7 +424,7 @@ export const AnalyticsPage: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-[#0e1628] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
+            <thead className="bg-[#0f0f0f] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Verification Policy</th>
                 <th className="py-3 px-4">Honest Sessions Stopped</th>
@@ -443,7 +443,7 @@ export const AnalyticsPage: React.FC = () => {
                 return (
                   <tr
                     key={key}
-                    className={ours ? 'bg-cyan-950/40 border-l-2 border-cyan-400' : 'hover:bg-slate-800/30 transition'}
+                    className={ours ? 'bg-cyan-950/40 border-l-2 border-cyan-400' : 'hover:bg-neutral-800/30 transition'}
                   >
                     <td className={`py-3 px-4 font-bold ${ours ? 'text-cyan-300' : 'text-slate-300'}`}>
                       {ours ? `${label} (threshold ${metrics.default_threshold})` : label}
@@ -454,7 +454,7 @@ export const AnalyticsPage: React.FC = () => {
                     <td className="py-3 px-4 text-slate-200">{pct(b.takeover_caught_same_device)}</td>
                     <td className="py-3 px-4 text-slate-200">{pct(b.accounts_caught)}</td>
                     <td className="py-3 px-4 text-slate-200">
-                      {shifts == null ? '—' : `${shifts} shift${shifts === 1 ? '' : 's'}${ours ? ' (median)' : ''}`}
+                      {shifts == null ? '-' : `${shifts} shift${shifts === 1 ? '' : 's'}${ours ? ' (median)' : ''}`}
                     </td>
                   </tr>
                 );

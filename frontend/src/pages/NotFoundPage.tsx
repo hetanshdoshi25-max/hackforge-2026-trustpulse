@@ -8,7 +8,7 @@ export const NotFoundPage: React.FC = () => {
       <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800 flex items-center justify-center text-rose-400">
         <ShieldAlert className="w-8 h-8" />
       </div>
-      <h2 className="text-xl font-bold text-slate-100">404 — Route Not Found</h2>
+      <h2 className="text-xl font-bold text-slate-100">404: Route Not Found</h2>
       <p className="text-xs text-slate-400 max-w-sm">
         The requested operations endpoint or page does not exist in the TrustPulse console.
       </p>

@@ -136,7 +136,7 @@ export const StepUpCamera: React.FC<StepUpCameraProps> = ({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-md bg-[#0c1322] border border-[#1e2c47] rounded-2xl p-5 shadow-2xl flex flex-col text-xs font-mono">
+      <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#1e2c47] rounded-2xl p-5 shadow-2xl flex flex-col text-xs font-mono">
         {onClose && !isSubmitted && (
           <button
             onClick={() => {
@@ -176,7 +176,7 @@ export const StepUpCamera: React.FC<StepUpCameraProps> = ({
                   <p className="text-xs">{cameraError || 'Camera permission denied.'}</p>
                   <button
                     onClick={startCamera}
-                    className="px-3 py-1.5 rounded bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700"
+                    className="px-3 py-1.5 rounded bg-neutral-800 text-slate-200 border border-slate-700 hover:bg-slate-700"
                   >
                     Retry Camera
                   </button>
@@ -249,7 +249,7 @@ export const StepUpCamera: React.FC<StepUpCameraProps> = ({
                   Your verification selfie is currently in the operations review queue.
                   Polling decision status from TrustPulse engine...
                 </p>
-                <div className="text-[10px] text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                <div className="text-[10px] text-slate-400 bg-neutral-900 px-3 py-1.5 rounded-lg border border-slate-800">
                   Session Status: <strong className="text-amber-400">{pollStatus}</strong>
                 </div>
               </>

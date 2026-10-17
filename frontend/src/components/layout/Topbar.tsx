@@ -25,11 +25,11 @@ export const Topbar: React.FC<TopbarProps> = ({
   isRefreshing,
 }) => {
   return (
-    <header className="h-16 px-4 md:px-6 bg-[#0c1322] border-b border-[#1e2c47] flex items-center justify-between z-20 shrink-0">
+    <header className="h-16 px-4 md:px-6 bg-[#0a0a0a] border-b border-[#1e2c47] flex items-center justify-between z-20 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMobileMenuToggle}
-          className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+          className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-neutral-800 transition"
           aria-label="Toggle navigation menu"
         >
           <Menu className="w-5 h-5" />
@@ -49,7 +49,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       <div className="flex items-center gap-2 md:gap-4 shrink-0">
         {/* Backend health status indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/80 border border-slate-800 text-xs font-mono">
+        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded bg-neutral-900/80 border border-slate-800 text-xs font-mono">
           <Server className="w-3.5 h-3.5 text-slate-400" />
           <span className="text-slate-400">API:</span>
           {backendHealthy === null ? (
@@ -71,7 +71,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         </div>
 
         {/* WebSocket live status */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/80 border border-slate-800 text-xs font-mono">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-neutral-900/80 border border-slate-800 text-xs font-mono">
           {socketStatus === 'connected' ? (
             <>
               <Wifi className="w-3.5 h-3.5 text-cyan-400" />
@@ -97,7 +97,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition disabled:opacity-50"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-neutral-800 transition disabled:opacity-50"
             title="Refresh data"
             aria-label="Refresh data"
           >
