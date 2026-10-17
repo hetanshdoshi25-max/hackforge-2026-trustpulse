@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config as C
+from . import recorder
 from .engine import GROUP_LABELS, baseline, feature_label, process_batch, start_session, verify_identity
 from .schemas import ConfigIn, Events, Resolve, SessionStart, StepUp
 from .store import DATA_DIR, SAVE_INTERVAL, store
@@ -189,7 +190,9 @@ async def session_events(sid: str, body: Events, label: str | None = None):
     before = s["action"]
     if label:
         s["label"] = label
-    process_batch(profile, s, body.model_dump(), threshold=store.threshold, now=time.time())
+    payload = body.model_dump()
+    recorder.record(s, payload)
+    process_batch(profile, s, payload, threshold=store.threshold, now=time.time())
     s["received_at"] = time.time()
     store.mark_dirty()
     out = public(s)
@@ -318,7 +321,13 @@ async def rider_reset(rider_id: str):
 
 @app.get("/config")
 def get_config():
-    return {"threshold": store.threshold, "min_enroll": C.MIN_ENROLL}
+    return {"threshold": store.threshold, "min_enroll": C.MIN_ENROLL, "recording": recorder.ENABLED}
+
+
+@app.get("/recordings/summary")
+def recordings_summary():
+    """During real-data collection: how many PIN logins each person has done so far."""
+    return recorder.summary()
 
 
 @app.post("/config")
