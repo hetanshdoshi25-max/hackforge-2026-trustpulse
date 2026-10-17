@@ -114,10 +114,10 @@ def distance(vec, stats):
     """Scaled Manhattan distance + per-feature z-scores (for explanations)."""
     zs = {n: abs(v - stats[n][0]) / stats[n][1] for n, v in vec.items() if n in stats}
     if not zs:
-        return None, []
+        return None, [], {}
     d = sum(zs.values()) / len(zs)
     top = sorted(zs.items(), key=lambda kv: -kv[1])[:3]
-    return d, top
+    return d, top, zs
 
 
 def calibration_factor(samples, stats):
@@ -401,7 +401,7 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
             learnable.append((g, vec))  # group not baselined yet (e.g. motion was off)
             continue
         stats, factor = baseline(profile, g)
-        d, top = distance(_smoothed(session, g, vec), stats)
+        d, top, zs = distance(_smoothed(session, g, vec), stats)
         if d is None:
             continue
         replay = g == "keystroke" and is_replay(vec, profile.samples[g], stats)
@@ -409,6 +409,7 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
             "anomaly": 1.0 if replay else anomaly_from_distance(d * factor),
             "distance": d, "calibration": round(factor, 3), "replay": replay,
             "top": [(n, round(z, 2)) for n, z in top], "batch": session["batch"],
+            "z": {n: round(z, 2) for n, z in zs.items()},  # every feature, for the 3D fingerprint
         }
         if not replay:
             learnable.append((g, vec))

@@ -106,7 +106,8 @@ def public(s):
         "status": s["status"],
         "verdict": s["verdict"],
         "reasons": s["reasons"],
-        "signals": {g: {"match": round(100 * (1 - st["anomaly"])), "top": st["top"]} for g, st in s["groups"].items()},
+        "signals": {g: {"match": round(100 * (1 - st["anomaly"])), "top": st["top"], "z": st.get("z", {})}
+                    for g, st in s["groups"].items()},
         "timeline": s["timeline"],
         "has_selfie": s["session_id"] in store.selfies,
         "label": s.get("label"),  # only set by the simulator (ground truth, for the demo)

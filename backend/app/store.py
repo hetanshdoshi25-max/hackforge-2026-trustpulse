@@ -12,7 +12,8 @@ from . import config as C
 from .engine import Profile
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-PROFILES_FILE = DATA_DIR / "profiles.json"
+# Override to run a throwaway server (e.g. a UI preview) without touching real profiles.
+PROFILES_FILE = Path(os.environ.get("TRUSTPULSE_PROFILES", DATA_DIR / "profiles.json"))
 SAVE_INTERVAL = 2.0
 MAX_SESSIONS_PER_RIDER = 200
 
