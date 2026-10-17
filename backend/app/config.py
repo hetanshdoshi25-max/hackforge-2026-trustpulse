@@ -54,6 +54,21 @@ DRIFT_ALLOWANCE = 0.20
 # No baseline learning while the account is drifting (stops renters poisoning it).
 DRIFT_LEARN_MAX = 0.15
 
+# Personal calibration: a rider whose own logins are naturally inconsistent gets a
+# proportionally wider tolerance, so honest-but-messy riders aren't flagged.
+# Typical in-baseline distance of a consistent rider:
+CALIB_REFERENCE = 0.75
+# Never relax a rider's tolerance by more than this (renters must still stand out).
+CALIB_MIN_FACTOR = 0.6
+
+# Replay / bot detection (PIN pad only, it has 10+ features): a login whose EVERY
+# feature is within this many std-devs of one stored sample is a recording, not a human.
+REPLAY_MAX_Z = 0.15
+
+# PIN brute force: lock the account after this many wrong PINs.
+PIN_MAX_FAILS = 5
+PIN_LOCK_SECONDS = 300
+
 # Session risk smoothing between batches.
 SESSION_SMOOTHING = 0.3
 

@@ -83,6 +83,8 @@ def main():
             print(f"{r['rider_id']} {r['name']:<18} {s['tag']:<14} truth={truth} "
                   f"trust={out['trust']:>3}  {col}{out['action']:<10}{RESET} {out['verdict']}")
             time.sleep(args.interval)
+    except urllib.error.HTTPError as e:
+        print(f"API error {e.code}: {e.read().decode()[:200]}")
     except urllib.error.URLError as e:
         print(f"API not reachable at {args.api}: {e}. Start it with: uvicorn app.main:app --host 0.0.0.0 --port 8000")
     except KeyboardInterrupt:

@@ -12,7 +12,7 @@ scaled Manhattan distance (the standard keystroke-dynamics detector: it works wi
 """
 import math
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta, timezone
 
 from . import config as C
@@ -55,6 +55,10 @@ class Profile:
     session_count: int = 0
     drift: float = 0.0
     drift_streak: int = 0
+    pin_fails: int = 0
+    locked_until: float = 0.0
+    # Runtime cache {group: (stats, calibration_factor)}; never persisted.
+    _baseline: dict = field(default_factory=dict, repr=False, compare=False)
 
     @property
     def enroll_progress(self):
@@ -65,11 +69,12 @@ class Profile:
         return self.enroll_progress >= C.MIN_ENROLL
 
     def to_dict(self):
-        return asdict(self)
+        return {f.name: getattr(self, f.name) for f in fields(self) if not f.name.startswith("_")}
 
     @classmethod
     def from_dict(cls, d):
-        p = cls(**d)
+        known = {f.name for f in fields(cls)}
+        p = cls(**{k: v for k, v in d.items() if k in known})
         for g in C.GROUPS:
             p.samples.setdefault(g, [])
         return p
@@ -110,6 +115,41 @@ def distance(vec, stats):
     d = sum(zs.values()) / len(zs)
     top = sorted(zs.items(), key=lambda kv: -kv[1])[:3]
     return d, top
+
+
+def calibration_factor(samples, stats):
+    """How inconsistent is this rider with *themselves*? Messy riders get a wider
+    tolerance (factor < 1), capped so renters still stand out."""
+    if not stats:
+        return 1.0
+    ds = sorted(distance(smp, stats)[0] or 0.0 for smp in samples)
+    n = len(ds)
+    typical = ds[n // 2] * math.sqrt(n / (n - 1))  # in-sample distances run slightly small
+    if typical <= C.CALIB_REFERENCE:
+        return 1.0
+    return max(C.CALIB_MIN_FACTOR, C.CALIB_REFERENCE / typical)
+
+
+def baseline(profile, group):
+    """(stats, calibration factor) for a group, cached until the group learns again."""
+    if group not in profile._baseline:
+        samples = profile.samples[group]
+        stats = group_stats(samples)
+        profile._baseline[group] = (stats, calibration_factor(samples, stats))
+    return profile._baseline[group]
+
+
+def is_replay(vec, samples, stats):
+    """A recorded-and-replayed login matches a past sample far too precisely:
+    EVERY feature within a hair of the same stored sample (humans never manage that)."""
+    shared = [n for n in vec if n in stats]
+    if len(shared) < 6:
+        return False
+    for smp in samples:
+        # all() stops at the first feature that differs, so the usual case is ~1 comparison
+        if all(n in smp and abs(vec[n] - smp[n]) < C.REPLAY_MAX_Z * stats[n][1] for n in shared):
+            return True
+    return False
 
 
 def anomaly_from_distance(d):
@@ -177,6 +217,7 @@ def learn_behaviour(profile, vectors):
         buf = profile.samples[g]
         buf.append(vec)
         del buf[: -C.BASELINE_WINDOW]
+        profile._baseline.pop(g, None)
 
 
 # ---------------------------------------------------------------- session flow
@@ -219,7 +260,9 @@ def start_session(profile, ctx):
     }
 
 
-def _verdict(b, c, drift_led=False):
+def _verdict(b, c, drift_led=False, replay=False):
+    if replay:
+        return "Inputs replayed from a past login: likely bot / automated takeover"
     if drift_led:
         return "Repeated small mismatches across sessions: possible shared / rented account"
     if b is None:
@@ -241,7 +284,9 @@ def _reasons(session):
         out.append(f"Behaviour has been off for {session['drift_streak']} sessions in a row (cumulative drift)")
     for g, st in sorted(session["groups"].items(), key=lambda kv: -kv[1]["anomaly"]):
         label, match = GROUP_LABELS[g], round(100 * (1 - st["anomaly"]))
-        if st["anomaly"] >= 0.5:
+        if st.get("replay"):
+            out.append(f"{label}: identical to a past login down to the millisecond (possible replay / bot)")
+        elif st["anomaly"] >= 0.5:
             worst = feature_label(st["top"][0][0])
             out.append(f"{label}: only {match}% match with baseline (biggest gap: {worst})")
         elif st["anomaly"] >= 0.3:
@@ -278,14 +323,18 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
         if len(profile.samples[g]) < C.MIN_ENROLL:
             learnable.append((g, vec))  # group not baselined yet (e.g. motion was off)
             continue
-        d, top = distance(vec, group_stats(profile.samples[g]))
+        stats, factor = baseline(profile, g)
+        d, top = distance(vec, stats)
         if d is None:
             continue
+        replay = g == "keystroke" and is_replay(vec, profile.samples[g], stats)
         session["groups"][g] = {
-            "anomaly": anomaly_from_distance(d), "distance": d,
+            "anomaly": 1.0 if replay else anomaly_from_distance(d * factor),
+            "distance": d, "calibration": round(factor, 3), "replay": replay,
             "top": [(n, round(z, 2)) for n, z in top], "batch": session["batch"],
         }
-        learnable.append((g, vec))
+        if not replay:
+            learnable.append((g, vec))
     session.setdefault("vectors", []).extend(learnable)
 
     # Fuse behaviour groups (older evidence in this session fades out).
@@ -300,6 +349,8 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
         fused = 0.5 * c
     else:
         fused = C.FUSION_BEHAVIOUR * b + C.FUSION_CONTEXT * c + C.FUSION_INTERACTION * b * c
+    if any(st.get("replay") for st in session["groups"].values()):
+        fused = max(fused, 0.9)  # replayed inputs are never a human: at least STEP_UP
     fused = max(0.0, min(1.0, fused))
     own = fused if session["own_risk"] is None else C.SESSION_SMOOTHING * session["own_risk"] + (1 - C.SESSION_SMOOTHING) * fused
     session["own_risk"] = own
@@ -321,7 +372,8 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
     new_action = action_for(risk, threshold)
     if C.ACTIONS.index(new_action) > C.ACTIONS.index(session["action"]):
         session["action"] = new_action
-    session["verdict"] = _verdict(b, c, session["drift_led"])
+    replay = any(st.get("replay") for st in session["groups"].values())
+    session["verdict"] = _verdict(b, c, session["drift_led"], replay)
     session["reasons"] = _reasons(session)
     session["timeline"].append({"t": now, "trust": round(100 * (1 - risk)), "action": session["action"]})
 

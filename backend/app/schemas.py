@@ -48,14 +48,15 @@ class Riding(BaseModel):
 
 
 class Events(BaseModel):
-    keystrokes: list[Key] = []
-    touches: list[Gesture] = []
-    motion: list[Motion] = []
+    # Size caps keep a misbehaving client from flooding the engine.
+    keystrokes: list[Key] = Field(default_factory=list, max_length=32)
+    touches: list[Gesture] = Field(default_factory=list, max_length=50)
+    motion: list[Motion] = Field(default_factory=list, max_length=600)
     riding: Riding | None = None
 
 
 class StepUp(BaseModel):
-    image: str  # data URL (image/jpeg)
+    image: str = Field(max_length=2_000_000)  # data URL (image/jpeg), ~1.5 MB max
 
 
 class Resolve(BaseModel):

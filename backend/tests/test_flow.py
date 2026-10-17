@@ -76,11 +76,53 @@ def test_full_flow():
     assert len(detail["history"]) == C.MIN_ENROLL + 2 + shift
     assert client.post("/config", json={"threshold": 55}).json()["threshold"] == 55
     client.post("/config", json={"threshold": C.DEFAULT_THRESHOLD})
+    base_dbg = client.get(f"/riders/{RID}/baseline").json()
+    assert base_dbg["groups"]["keystroke"]["features"]["dwell_0"]["std"] > 0
 
     client.post(f"/riders/{RID}/reset")
     assert RID not in store.profiles
 
 
+def test_replay_attack():
+    """A bot replaying the owner's recorded PIN entry matches TOO perfectly."""
+    client = TestClient(app)
+    rng = np.random.default_rng(2)
+    owner, rid, pin = make_persona(rng), "TEST_REPLAY", "1397"
+    client.post(f"/riders/{rid}/reset")
+    ctx = {"rider_id": rid, "pin": pin, "device_id": "phone-A", "city": "Mumbai"}
+    recorded = None
+    for _ in range(C.MIN_ENROLL + 2):
+        payload = sample_payload(owner, pin, rng)
+        recorded = recorded or payload
+        sid = client.post("/session/start", json=ctx).json()["session_id"]
+        out = client.post(f"/session/{sid}/events", json=payload).json()
+    assert out["action"] == "ALLOW", out
+
+    sid = client.post("/session/start", json=ctx).json()["session_id"]
+    out = client.post(f"/session/{sid}/events", json=recorded).json()
+    print("replayed login ", out["trust"], out["action"], "|", out["verdict"])
+    assert out["action"] in ("STEP_UP", "REVIEW"), out
+    assert "replay" in out["verdict"]
+    client.post(f"/riders/{rid}/reset")
+
+
+def test_pin_lockout():
+    client = TestClient(app)
+    rid = "TEST_LOCK"
+    client.post(f"/riders/{rid}/reset")
+    ctx = {"rider_id": rid, "device_id": "phone-A"}
+    assert client.post("/session/start", json={**ctx, "pin": "4321"}).status_code == 200
+    codes = [client.post("/session/start", json={**ctx, "pin": "0000"}).status_code for _ in range(C.PIN_MAX_FAILS)]
+    assert codes == [401] * (C.PIN_MAX_FAILS - 1) + [423], codes
+    # Even the right PIN is refused while locked
+    assert client.post("/session/start", json={**ctx, "pin": "4321"}).status_code == 423
+    assert any(a["alert_type"] == "PIN_LOCKOUT" and a["rider_id"] == rid for a in client.get("/alerts").json())
+    print("pin lockout     after", C.PIN_MAX_FAILS, "wrong PINs:", codes[-1])
+    client.post(f"/riders/{rid}/reset")
+
+
 if __name__ == "__main__":
     test_full_flow()
+    test_replay_attack()
+    test_pin_lockout()
     print("\nALL CHECKS PASSED")

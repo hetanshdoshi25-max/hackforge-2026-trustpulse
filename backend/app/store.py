@@ -1,8 +1,11 @@
 """In-memory state, with rider profiles persisted to data/profiles.json.
 
-Good enough for a 24h demo; swap for Postgres/Redis later without touching the engine.
+Writes are batched: requests only mark the store dirty, and a background task
+flushes at most once per SAVE_INTERVAL (plus on shutdown). The file is written
+atomically so a crash mid-write can't corrupt it.
 """
 import json
+import os
 from pathlib import Path
 
 from . import config as C
@@ -10,6 +13,8 @@ from .engine import Profile
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 PROFILES_FILE = DATA_DIR / "profiles.json"
+SAVE_INTERVAL = 2.0
+MAX_SESSIONS_PER_RIDER = 200
 
 
 class Store:
@@ -20,6 +25,7 @@ class Store:
         self.alerts: list[dict] = []
         self.selfies: dict[str, str] = {}
         self.threshold = C.DEFAULT_THRESHOLD
+        self.dirty = False
         self.load()
 
     def load(self):
@@ -29,7 +35,17 @@ class Store:
 
     def save(self):
         DATA_DIR.mkdir(exist_ok=True)
-        PROFILES_FILE.write_text(json.dumps({rid: p.to_dict() for rid, p in self.profiles.items()}))
+        tmp = PROFILES_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps({rid: p.to_dict() for rid, p in self.profiles.items()}))
+        os.replace(tmp, PROFILES_FILE)
+        self.dirty = False
+
+    def mark_dirty(self):
+        self.dirty = True
+
+    def flush(self):
+        if self.dirty:
+            self.save()
 
     def profile(self, rider_id, name=None):
         if rider_id not in self.profiles:
@@ -40,7 +56,13 @@ class Store:
 
     def add_session(self, s):
         self.sessions[s["session_id"]] = s
-        self.rider_sessions.setdefault(s["rider_id"], []).append(s["session_id"])
+        sids = self.rider_sessions.setdefault(s["rider_id"], [])
+        sids.append(s["session_id"])
+        # Keep memory bounded on long simulator runs.
+        for old in sids[:-MAX_SESSIONS_PER_RIDER]:
+            self.sessions.pop(old, None)
+            self.selfies.pop(old, None)
+        del sids[:-MAX_SESSIONS_PER_RIDER]
 
     def reset_rider(self, rider_id):
         self.profiles.pop(rider_id, None)

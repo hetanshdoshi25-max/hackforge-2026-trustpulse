@@ -1,17 +1,35 @@
 """TrustPulse API. Run: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"""
+import asyncio
 import hashlib
+import hmac
 import json
+import secrets
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config as C
-from .engine import process_batch, start_session, verify_identity
+from .engine import GROUP_LABELS, baseline, feature_label, process_batch, start_session, verify_identity
 from .schemas import ConfigIn, Events, Resolve, SessionStart, StepUp
-from .store import DATA_DIR, store
+from .store import DATA_DIR, SAVE_INTERVAL, store
 
-app = FastAPI(title="TrustPulse", description="Continuous rider identity engine")
+
+@asynccontextmanager
+async def lifespan(_app):
+    async def saver():
+        while True:
+            await asyncio.sleep(SAVE_INTERVAL)
+            store.flush()
+
+    task = asyncio.create_task(saver())
+    yield
+    task.cancel()
+    store.flush()
+
+
+app = FastAPI(title="TrustPulse", description="Continuous rider identity engine", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ESCALATED = {"SOFT_CHECK", "STEP_UP", "REVIEW"}
@@ -48,8 +66,19 @@ async def ws_endpoint(ws: WebSocket):
 
 # ---------------------------------------------------------------- helpers
 
-def pin_hash(rider_id, pin):
-    return hashlib.sha256(f"{rider_id}:{pin}".encode()).hexdigest()
+def pin_hash(pin, salt=None):
+    """Salted PBKDF2, stored as 'salt$hash'. A 4-digit PIN is weak on its own;
+    the lockout below is what really protects it."""
+    salt = salt or secrets.token_hex(8)
+    digest = hashlib.pbkdf2_hmac("sha256", pin.encode(), bytes.fromhex(salt), 100_000).hex()
+    return f"{salt}${digest}"
+
+
+def pin_ok(stored, pin, rider_id):
+    if "$" not in stored:  # legacy unsalted sha256 from older profiles.json
+        return hmac.compare_digest(stored, hashlib.sha256(f"{rider_id}:{pin}".encode()).hexdigest())
+    salt, _, _ = stored.partition("$")
+    return hmac.compare_digest(stored, pin_hash(pin, salt))
 
 
 def public(s):
@@ -90,12 +119,43 @@ def get_session(sid):
     return s
 
 
-async def raise_alert(s, kind):
-    alert = {**public(s), "alert_type": kind, "alert_at": time.time()}
-    alert.pop("timeline")
+async def push_alert(alert):
     store.alerts.append(alert)
     del store.alerts[:-300]
     await hub.send("alert", alert)
+
+
+async def raise_alert(s, kind):
+    alert = {**public(s), "alert_type": kind, "alert_at": time.time()}
+    alert.pop("timeline")
+    await push_alert(alert)
+
+
+async def check_pin(profile, pin):
+    now = time.time()
+    if profile.locked_until > now:
+        raise HTTPException(423, f"Too many wrong PINs. Try again in {int(profile.locked_until - now)} s")
+    if profile.pin_hash is None:
+        profile.pin_hash = pin_hash(pin)
+        return
+    if pin_ok(profile.pin_hash, pin, profile.rider_id):
+        if "$" not in profile.pin_hash:
+            profile.pin_hash = pin_hash(pin)  # upgrade legacy hash
+        profile.pin_fails = 0
+        return
+    profile.pin_fails += 1
+    store.mark_dirty()
+    if profile.pin_fails >= C.PIN_MAX_FAILS:
+        profile.locked_until, profile.pin_fails = now + C.PIN_LOCK_SECONDS, 0
+        await push_alert({
+            "alert_type": "PIN_LOCKOUT", "alert_at": now, "session_id": None,
+            "rider_id": profile.rider_id, "name": profile.name, "action": "REVIEW",
+            "trust": None, "risk": None, "status": "LOCKED",
+            "verdict": f"{C.PIN_MAX_FAILS} wrong PINs in a row: possible PIN guessing",
+            "reasons": [f"Account locked for {C.PIN_LOCK_SECONDS // 60} min"],
+        })
+        raise HTTPException(423, "Too many wrong PINs. Account locked")
+    raise HTTPException(401, "Wrong PIN")
 
 
 # ---------------------------------------------------------------- session endpoints
@@ -109,17 +169,14 @@ def health():
 async def session_start(body: SessionStart, request: Request):
     profile = store.profile(body.rider_id, body.name)
     if body.pin:
-        h = pin_hash(body.rider_id, body.pin)
-        if profile.pin_hash is None:
-            profile.pin_hash = h
-        elif profile.pin_hash != h:
-            raise HTTPException(401, "Wrong PIN")
+        await check_pin(profile, body.pin)
     ctx = body.model_dump(exclude={"pin", "name"})
     ctx["ts"] = ctx["ts"] or time.time()
     ctx["ip"] = request.client.host if request.client else None
     s = start_session(profile, ctx)
     s["received_at"] = time.time()
     store.add_session(s)
+    store.mark_dirty()
     return public(s)
 
 
@@ -134,7 +191,7 @@ async def session_events(sid: str, body: Events, label: str | None = None):
         s["label"] = label
     process_batch(profile, s, body.model_dump(), threshold=store.threshold, now=time.time())
     s["received_at"] = time.time()
-    store.save()
+    store.mark_dirty()
     out = public(s)
     await hub.send("session", out)
     if s["action"] != before and s["action"] in ESCALATED:
@@ -171,7 +228,7 @@ async def session_resolve(sid: str, body: Resolve):
     s = get_session(sid)
     if body.decision == "approve":
         verify_identity(store.profiles[s["rider_id"]], s)
-        store.save()
+        store.mark_dirty()
         s["status"], s["action"] = "VERIFIED", "ALLOW"
         s["verdict"] = "Verified by reviewer"
     elif body.decision == "reject":
@@ -227,6 +284,31 @@ def rider(rider_id: str):
     }
 
 
+@app.get("/riders/{rider_id}/baseline")
+def rider_baseline(rider_id: str):
+    """Debug view: what the engine has learned for this rider, and how the last
+    session compared feature by feature. Use it to tune on real phone data."""
+    p = store.profiles.get(rider_id)
+    if not p:
+        raise HTTPException(404, "Unknown rider")
+    sids = store.rider_sessions.get(rider_id, [])
+    last = store.sessions[sids[-1]] if sids else None
+    groups = {}
+    for g, samples in p.samples.items():
+        if len(samples) < 3:
+            groups[g] = {"label": GROUP_LABELS[g], "samples": len(samples)}
+            continue
+        stats, factor = baseline(p, g)
+        groups[g] = {
+            "label": GROUP_LABELS[g], "samples": len(samples), "calibration": round(factor, 3),
+            "features": {n: {"label": feature_label(n), "mean": round(mu, 3), "std": round(sd, 3)}
+                         for n, (mu, sd) in sorted(stats.items())},
+            "last_session": last and last["groups"].get(g, {}).get("top"),
+        }
+    return {"rider_id": rider_id, "enrolled": p.enrolled, "drift": round(p.drift, 3),
+            "drift_streak": p.drift_streak, "groups": groups}
+
+
 @app.post("/riders/{rider_id}/reset")
 async def rider_reset(rider_id: str):
     store.reset_rider(rider_id)
@@ -246,9 +328,15 @@ async def set_config(body: ConfigIn):
     return get_config()
 
 
+_tradeoff_cache = {"mtime": None, "data": None}
+
+
 @app.get("/metrics/tradeoff")
 def tradeoff():
     f = DATA_DIR / "tradeoff.json"
     if not f.exists():
         raise HTTPException(404, "Run `python -m ml.evaluate` first")
-    return json.loads(f.read_text())
+    mtime = f.stat().st_mtime
+    if _tradeoff_cache["mtime"] != mtime:  # re-read only when evaluate rewrites it
+        _tradeoff_cache.update(mtime=mtime, data=json.loads(f.read_text()))
+    return _tradeoff_cache["data"]

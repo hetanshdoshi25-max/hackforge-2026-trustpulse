@@ -39,6 +39,7 @@ The first **8 logins** of a rider are enrollment (baseline building). For the de
 }
 ```
 - `pin`: the first login sets it; after that, a wrong PIN returns **401**.
+  After **5 wrong PINs** the account locks for 5 minutes: every login returns **423** (show the `detail` message), and a `PIN_LOCKOUT` alert goes to the dashboard.
 - `ts` is optional (epoch **seconds**); the server uses its own clock if missing.
 - "Simulate new phone" in the demo = generate a new `device_id`. "Moved city" = change `city`/`lat`/`lon`.
 
@@ -131,9 +132,10 @@ Colour code suggestion: `ALLOW` green · `SOFT_CHECK` yellow · `STEP_UP` orange
 |---|---|---|
 | GET | `/riders` | All riders, each with the `last` Session object, enroll progress, known cities |
 | GET | `/riders/{id}` | Rider detail + `history` (sessions oldest→newest), good for the trust timeline chart |
-| POST | `/riders/{id}/reset` | Wipe a rider (to re-do the demo enrollment) |
+| POST | `/riders/{id}/reset` | Wipe a rider (to re-do the demo enrollment). Also clears a PIN lockout |
+| GET | `/riders/{id}/baseline` | **Debug:** learned mean/std per feature, calibration factor, last session's biggest gaps. Use it when testing real phone data |
 | GET | `/sessions?limit=100&rider_id=` | Recent sessions, newest first (for the map / live feed) |
-| GET | `/alerts?limit=50` | Alert queue, newest first. Session object + `alert_type` (`SOFT_CHECK`/`STEP_UP`/`REVIEW`/`SELFIE_SUBMITTED`) + `alert_at` |
+| GET | `/alerts?limit=50` | Alert queue, newest first. Session object + `alert_type` (`SOFT_CHECK`/`STEP_UP`/`REVIEW`/`SELFIE_SUBMITTED`/`PIN_LOCKOUT`) + `alert_at`. `PIN_LOCKOUT` alerts have `session_id: null` and `trust: null` |
 | GET | `/session/{id}/selfie` | `{ "image": "data:image/jpeg;base64,..." }` |
 | POST | `/session/{id}/resolve` | `{ "decision": "approve" \| "reject" }` reviewer button |
 | GET | `/config` | `{ "threshold": 70, "min_enroll": 8 }` |

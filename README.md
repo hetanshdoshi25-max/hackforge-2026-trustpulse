@@ -40,7 +40,10 @@ keep working, and a different person behind the same account gets escalated.
 - **Graded response, not a gate.** Soft check (selfie at next pickup, no block) → step-up (live selfie) → human review.
 - **Cross-session drift (CUSUM).** One messy session (rain, rushing) fades away. A renter who is "a bit off" every shift accumulates and gets caught, usually by the 2nd shift.
 - **Poison-proof adaptive baseline.** Only clean sessions update the baseline, so a renter can't slowly teach the system their habits. An honest rider who passes a step-up is re-learned, so a new phone costs **at most one selfie**.
-- **Privacy.** The server never stores raw events: profiles keep only derived numbers (timings, angles, speeds), and the PIN is stored as a hash. Next step: compute the features on-device so raw events never leave the phone.
+- **Personal calibration.** Some people are naturally less consistent. Each rider's tolerance is scaled by how much they vary *from themselves*, so honest-but-messy riders aren't flagged (capped, so renters still stand out).
+- **Replay / bot detection.** A recorded PIN entry played back matches a past login *too perfectly*. Humans never repeat timings to the millisecond, so it goes straight to review.
+- **PIN brute-force lockout.** 5 wrong PINs lock the account for 5 minutes and raise a dashboard alert.
+- **Privacy.** The server never stores raw events: profiles keep only derived numbers (timings, angles, speeds), and the PIN is stored as a salted PBKDF2 hash. Next step: compute the features on-device so raw events never leave the phone.
 
 ## Results (synthetic fleet: 500 riders × 30 days)
 
@@ -53,7 +56,7 @@ renters on a new phone, **lookalike renters** (relatives/friends with similar ha
 | Open gate (verify once) | 0% | 0% | 0% | 0% | 0% |
 | Strict gate (re-verify every login) | 100% | 100% | 100% | 100% | 100% |
 | Context rules (re-verify on new device/city) | 0.56% | 28.0% | 37.8% | **5.7%** | 45.8% |
-| **TrustPulse** (threshold 70) | **0.19%** | **3.4%** (one selfie) | **83.1%** | **81.8%** | **93.8%** |
+| **TrustPulse** (threshold 70) | **0.19%** | **3.4%** (one selfie) | **82.8%** | **81.4%** | **93.8%** |
 
 26,000 scored sessions, 3,068 honest life-change sessions, 873 rented sessions across 48 rented accounts.
 A rented account is caught after a **median of 2 sessions**. The misses are mostly "lookalike" renters
