@@ -129,6 +129,6 @@ One incident involving an unverified rider costs far more in legal liability and
 - [ ] Laptop and phone on the same network; app opens over HTTPS on the phone
 - [ ] `POST /riders/DEMO1/reset`, then enroll DEMO1 with **15 logins** by the demo person
 - [ ] Threshold set from `real_eval` (`POST /config`)
-- [ ] `python -m ml.simulate_live --riders 25` running before going on stage
+- [ ] Everything started with `python start.py --demo --phone` (backend, frontend, threshold 45, live riders)
 - [ ] Backup demo **video** recorded and on the laptop desktop
 - [ ] Phone fully charged, auto-lock off, brightness up, notifications silenced

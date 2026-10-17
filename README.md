@@ -82,27 +82,29 @@ Phones don't send riding data, so phone-only risk scores run lower than the synt
 
 Privacy: PIN digits are never written (only a hash proving everyone typed the same PIN), and `data/recordings/` is git-ignored. Delete it after the event.
 
-## Quick start (Windows, from `backend/`)
+## Quick start: one command
+
+From the repo root (needs Python 3.11+ and Node 20+):
 
 ```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-
-python -m ml.evaluate                     # builds data/tradeoff.json (≈1 min, uses all cores)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python start.py
 ```
+This installs missing dependencies on the first run, starts the backend and frontend in one window, and prints the links. **Ctrl+C stops everything.**
+
+| Option | What it adds |
+|---|---|
+| `--demo` | demo threshold 45 + live simulated riders on the dashboard |
+| `--phone` | HTTPS and the phone URL, for opening the rider app on a phone on the same WiFi |
+| `--threshold 50` | a different demo threshold |
+| `--api-port` / `--web-port` | other ports if 8000 / 5173 are busy |
+
+Then open http://localhost:5173/ and choose **delivery partner** (rider app) or **operations team** (dashboard).
 API docs: http://127.0.0.1:8000/docs · Contract for the app & dashboard: [docs/API.md](docs/API.md)
 
-In a second terminal, stream live traffic for the dashboard:
+**Other backend commands** (from `backend/`):
 ```bash
-python -m ml.simulate_live --riders 25
-```
-
-Run the end-to-end test:
-```bash
-python -m tests.test_flow
+python -m ml.evaluate        # rebuilds data/tradeoff.json (~1.5 min, 4 worker processes)
+python -m tests.test_flow    # end-to-end API tests
 ```
 
 > On Windows use `127.0.0.1` instead of `localhost` in scripts and proxies (`localhost` tries IPv6 first and adds ~2 s per request).
@@ -125,6 +127,7 @@ Then enroll DEMO1 with 15 logins and start `python -m ml.simulate_live --riders 
 ## Repo layout
 
 ```
+start.py           one command: backend + frontend (+ --demo, --phone)
 backend/
   app/
     config.py      all tunable knobs (weights, thresholds, floors)
