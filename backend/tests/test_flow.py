@@ -106,6 +106,53 @@ def test_replay_attack():
     client.post(f"/riders/{rid}/reset")
 
 
+def test_mid_session_handoff(seed=7):
+    """Owner types the PIN, then hands the phone over: the swipes give it away."""
+    client = TestClient(app)
+    rng = np.random.default_rng(seed)
+    owner, renter, rid, pin = make_persona(rng), make_persona(rng), "TEST_HANDOFF", "5555"
+    client.post(f"/riders/{rid}/reset")
+    ctx = {"rider_id": rid, "pin": pin, "device_id": "phone-A", "city": "Mumbai"}
+
+    def phone_only(persona):
+        pl = sample_payload(persona, pin, rng)
+        pl.pop("riding")  # real phones don't send trip summaries
+        return pl
+
+    for _ in range(C.MIN_ENROLL + 4):
+        sid = client.post("/session/start", json=ctx).json()["session_id"]
+        client.post(f"/session/{sid}/events", json=phone_only(owner))
+
+    sid = client.post("/session/start", json=ctx).json()["session_id"]
+    pl = phone_only(owner)
+    out = client.post(f"/session/{sid}/events", json={"keystrokes": pl["keystrokes"], "motion": pl["motion"]}).json()
+    assert out["action"] == "ALLOW", out  # clean login by the owner
+    for _ in range(8):
+        r = phone_only(renter)
+        out = client.post(f"/session/{sid}/events", json={"touches": r["touches"][:1], "motion": r["motion"]}).json()
+    print("handoff        ", out["trust"], out["action"], "|", out["verdict"])
+    assert out["action"] in ("STEP_UP", "REVIEW"), out
+    assert "handed over" in out["verdict"]
+    client.post(f"/riders/{rid}/reset")
+
+
+def test_shared_from_day_one(seed=4):
+    """Two people take turns during enrollment: the baseline splits into two clusters."""
+    client = TestClient(app)
+    rng = np.random.default_rng(seed)
+    a, b, rid, pin = make_persona(rng), make_persona(rng), "TEST_SHARED", "8080"
+    client.post(f"/riders/{rid}/reset")
+    ctx = {"rider_id": rid, "pin": pin, "device_id": "phone-A", "city": "Mumbai"}
+    for i in range(C.MIN_ENROLL):
+        sid = client.post("/session/start", json=ctx).json()["session_id"]
+        out = client.post(f"/session/{sid}/events", json=sample_payload(a if i % 2 else b, pin, rng)).json()
+    print("shared day one ", out["trust"], out["action"], "|", out["verdict"])
+    assert out["action"] == "STEP_UP", out
+    assert client.get(f"/riders/{rid}").json()["shared_enrollment"] is True
+    assert any(al["rider_id"] == rid and al["alert_type"] == "STEP_UP" for al in client.get("/alerts").json())
+    client.post(f"/riders/{rid}/reset")
+
+
 def test_pin_lockout():
     client = TestClient(app)
     rid = "TEST_LOCK"
@@ -124,5 +171,7 @@ def test_pin_lockout():
 if __name__ == "__main__":
     test_full_flow()
     test_replay_attack()
+    test_mid_session_handoff()
+    test_shared_from_day_one()
     test_pin_lockout()
     print("\nALL CHECKS PASSED")

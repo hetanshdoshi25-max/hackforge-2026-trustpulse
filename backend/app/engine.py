@@ -15,6 +15,8 @@ import uuid
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta, timezone
 
+import numpy as np
+
 from . import config as C
 from .features import extract_all
 
@@ -55,6 +57,7 @@ class Profile:
     session_count: int = 0
     drift: float = 0.0
     drift_streak: int = 0
+    shared_enrollment: bool = False
     pin_fails: int = 0
     locked_until: float = 0.0
     # Runtime cache {group: (stats, calibration_factor)}; never persisted.
@@ -150,6 +153,27 @@ def is_replay(vec, samples, stats):
         if all(n in smp and abs(vec[n] - smp[n]) < C.REPLAY_MAX_Z * stats[n][1] for n in shared):
             return True
     return False
+
+
+def enrollment_split(samples):
+    """Do the enrollment logins look like ONE person or TWO? 2-means on standardised
+    vectors; returns (gap between the two centroids in within-cluster std units,
+    size of the smaller cluster). One person ~1.2, two strangers ~3.7."""
+    vecs = [v for v in samples if v]
+    names = sorted(set.intersection(*(set(v) for v in vecs))) if vecs else []
+    if len(vecs) < 2 * C.SPLIT_MIN_CLUSTER or len(names) < 4:
+        return 0.0, 0
+    X = np.array([[v[n] for n in names] for v in vecs])
+    X = (X - X.mean(0)) / (X.std(0) + 1e-9)
+    i, j = np.unravel_index(np.abs(X[:, None] - X[None]).sum(-1).argmax(), (len(X), len(X)))
+    centres = X[[i, j]]
+    for _ in range(10):
+        lab = (np.abs(X - centres[0]).sum(1) > np.abs(X - centres[1]).sum(1)).astype(int)
+        if lab.min() == lab.max():
+            return 0.0, 0
+        centres = np.array([X[lab == k].mean(0) for k in (0, 1)])
+    within = np.sqrt(((X - centres[lab]) ** 2).sum(0) / (len(X) - 2)) + 1e-9
+    return float((np.abs(centres[0] - centres[1]) / within).mean()), int(min(lab.sum(), len(lab) - lab.sum()))
 
 
 def anomaly_from_distance(d):
@@ -260,9 +284,45 @@ def start_session(profile, ctx):
     }
 
 
-def _verdict(b, c, drift_led=False, replay=False):
+def _smoothed(session, group, vec):
+    """Swipes and grip arrive one gesture at a time and a single gesture is noisy.
+    Score the average of the last few in this session: honest noise averages out,
+    a different person's consistent offset doesn't."""
+    if group not in C.SMOOTHED_GROUPS:
+        return vec
+    recent = session.setdefault("recent", {}).setdefault(group, [])
+    recent.append(vec)
+    del recent[: -C.SMOOTH_WINDOW]
+    keys = set.intersection(*(set(v) for v in recent))
+    return {k: sum(v[k] for v in recent) / len(recent) for k in keys}
+
+
+def _fuse(session, c, only_batch=None):
+    """Power-mean of group anomalies -> (behaviour risk, fused risk). With only_batch,
+    use just the groups that arrived in that batch."""
+    num = den = 0.0
+    for g, st in session["groups"].items():
+        if only_batch is not None and st["batch"] != only_batch:
+            continue
+        w = C.GROUP_WEIGHTS[g] * C.RECENCY_DECAY ** (session["batch"] - st["batch"])
+        num += w * st["anomaly"] ** C.FUSION_POWER
+        den += w
+    b = (num / den) ** (1 / C.FUSION_POWER) if den else None
+    if b is None:
+        fused = 0.5 * c if only_batch is None else 0.0
+    else:
+        fused = C.FUSION_BEHAVIOUR * b + C.FUSION_CONTEXT * c + C.FUSION_INTERACTION * b * c
+    groups = [st for st in session["groups"].values() if only_batch is None or st["batch"] == only_batch]
+    if any(st.get("replay") for st in groups):
+        fused = max(fused, 0.9)  # replayed inputs are never a human: at least STEP_UP
+    return b, max(0.0, min(1.0, fused))
+
+
+def _verdict(b, c, drift_led=False, replay=False, handoff=False):
     if replay:
         return "Inputs replayed from a past login: likely bot / automated takeover"
+    if handoff:
+        return "Clean login, then a different person's behaviour: phone handed over after login"
     if drift_led:
         return "Repeated small mismatches across sessions: possible shared / rented account"
     if b is None:
@@ -280,6 +340,8 @@ def _verdict(b, c, drift_led=False, replay=False):
 
 def _reasons(session):
     out = []
+    if session.get("handoff"):
+        out.append("Login matched the owner, but the swipes since then don't (mid-session handoff)")
     if session.get("drift_streak", 0) >= 2 and session.get("drift", 0) >= 0.3:
         out.append(f"Behaviour has been off for {session['drift_streak']} sessions in a row (cumulative drift)")
     for g, st in sorted(session["groups"].items(), key=lambda kv: -kv[1]["anomaly"]):
@@ -310,12 +372,27 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
         if not session["context_learned"]:
             learn_context(profile, session["ctx"])
             session["context_learned"] = True
+        if session["action"] != "ENROLLING":  # already escalated earlier in this session
+            session["timeline"].append({"t": now, "trust": round(100 * (1 - session["risk"])), "action": session["action"]})
+            return session
         session.update(
             risk=0.0, action="ENROLLING",
             verdict=f"Learning this rider's pattern ({profile.enroll_progress}/{C.MIN_ENROLL} logins)",
             reasons=[f"Enrollment: {profile.enroll_progress}/{C.MIN_ENROLL} baseline samples collected"],
         )
-        session["timeline"].append({"t": now, "trust": 100, "action": "ENROLLING"})
+        if profile.enrolled and not profile.shared_enrollment:
+            # Enrollment just completed: was it one person, or two taking turns?
+            score, smaller = enrollment_split(profile.samples["keystroke"])
+            if score >= C.SPLIT_SCORE_MIN and smaller >= C.SPLIT_MIN_CLUSTER:
+                profile.shared_enrollment = True
+                session.update(
+                    risk=0.8, max_risk=0.8, action="STEP_UP",
+                    verdict="Enrollment logins look like 2 different people: account shared from day one",
+                    reasons=[f"Typing rhythm during enrollment splits into two groups "
+                             f"({score:.1f}x apart; one person scores ~1.2)",
+                             "Verify identity, then reset the rider to re-enroll"],
+                )
+        session["timeline"].append({"t": now, "trust": round(100 * (1 - session["risk"])), "action": session["action"]})
         return session
 
     learnable = []
@@ -324,7 +401,7 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
             learnable.append((g, vec))  # group not baselined yet (e.g. motion was off)
             continue
         stats, factor = baseline(profile, g)
-        d, top = distance(vec, stats)
+        d, top = distance(_smoothed(session, g, vec), stats)
         if d is None:
             continue
         replay = g == "keystroke" and is_replay(vec, profile.samples[g], stats)
@@ -338,22 +415,22 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
     session.setdefault("vectors", []).extend(learnable)
 
     # Fuse behaviour groups (older evidence in this session fades out).
-    num = den = 0.0
-    for g, st in session["groups"].items():
-        w = C.GROUP_WEIGHTS[g] * C.RECENCY_DECAY ** (session["batch"] - st["batch"])
-        num += w * st["anomaly"] ** C.FUSION_POWER
-        den += w
-    b = (num / den) ** (1 / C.FUSION_POWER) if den else None
     c = session["context_risk"]
-    if b is None:
-        fused = 0.5 * c
-    else:
-        fused = C.FUSION_BEHAVIOUR * b + C.FUSION_CONTEXT * c + C.FUSION_INTERACTION * b * c
-    if any(st.get("replay") for st in session["groups"].values()):
-        fused = max(fused, 0.9)  # replayed inputs are never a human: at least STEP_UP
-    fused = max(0.0, min(1.0, fused))
+    b, fused = _fuse(session, c)
     own = fused if session["own_risk"] is None else C.SESSION_SMOOTHING * session["own_risk"] + (1 - C.SESSION_SMOOTHING) * fused
     session["own_risk"] = own
+
+    # In-session change point: score ONLY this batch's fresh evidence and accumulate it.
+    # Catches "owner types the PIN, then hands the phone over", where the clean
+    # login would otherwise dilute everything that follows.
+    _, batch_risk = _fuse(session, c, only_batch=session["batch"])
+    if session["batch"] == 1:
+        session["login_clean"] = batch_risk < C.HANDOFF_LOGIN_MAX
+    session["handoff_cusum"] = max(0.0, session.get("handoff_cusum", 0.0) + batch_risk - C.HANDOFF_ALLOWANCE)
+    session["handoff"] = (session.get("login_clean", False) and session["batch"] > 1
+                          and session["handoff_cusum"] >= C.HANDOFF_TRIGGER)
+    if session["handoff"]:
+        own = max(own, min(0.99, session["handoff_cusum"] + C.HANDOFF_ALLOWANCE))
 
     # Account-level CUSUM: recomputed from the session's starting value so multiple
     # batches in one session don't compound.
@@ -373,7 +450,7 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
     if C.ACTIONS.index(new_action) > C.ACTIONS.index(session["action"]):
         session["action"] = new_action
     replay = any(st.get("replay") for st in session["groups"].values())
-    session["verdict"] = _verdict(b, c, session["drift_led"], replay)
+    session["verdict"] = _verdict(b, c, session["drift_led"], replay, session["handoff"])
     session["reasons"] = _reasons(session)
     session["timeline"].append({"t": now, "trust": round(100 * (1 - risk)), "action": session["action"]})
 

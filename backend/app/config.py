@@ -65,9 +65,26 @@ CALIB_MIN_FACTOR = 0.6
 # feature is within this many std-devs of one stored sample is a recording, not a human.
 REPLAY_MAX_Z = 0.15
 
+# Shared from day one: when enrollment completes, if the PIN logins split into two
+# clusters this far apart (centroid gap in within-cluster std units; one person ~1.2,
+# two strangers ~3.7), each with at least SPLIT_MIN_CLUSTER logins -> step-up.
+SPLIT_SCORE_MIN = 3.0
+SPLIT_MIN_CLUSTER = 3
+
 # PIN brute force: lock the account after this many wrong PINs.
 PIN_MAX_FAILS = 5
 PIN_LOCK_SECONDS = 300
+
+# Mid-session handoff (in-session CUSUM over each batch's own evidence):
+# each batch adds (batch_risk - ALLOWANCE); a clean login followed by enough
+# accumulated mismatch = the phone was handed over after the PIN.
+HANDOFF_ALLOWANCE = 0.35
+HANDOFF_TRIGGER = 0.45
+# The login counts as "clean" (owner's own PIN entry) below this batch risk.
+HANDOFF_LOGIN_MAX = 0.30
+# In-session averaging of the last N gestures for the noisy per-gesture signals.
+SMOOTHED_GROUPS = ("touch", "motion")
+SMOOTH_WINDOW = 3
 
 # Session risk smoothing between batches.
 SESSION_SMOOTHING = 0.3

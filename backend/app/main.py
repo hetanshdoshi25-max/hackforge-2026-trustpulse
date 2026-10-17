@@ -268,7 +268,7 @@ def riders():
             "rider_id": rid, "name": p.name, "enrolled": p.enrolled,
             "enroll_progress": p.enroll_progress, "sessions": p.session_count,
             "known_devices": len(p.devices), "known_cities": list(p.cities),
-            "last": last,
+            "shared_enrollment": p.shared_enrollment, "last": last,
         })
     return sorted(out, key=lambda r: -(r["last"]["received_at"] if r["last"] else 0))
 
@@ -282,6 +282,7 @@ def rider(rider_id: str):
         "rider_id": rider_id, "name": p.name, "enrolled": p.enrolled,
         "enroll_progress": p.enroll_progress, "sessions": p.session_count,
         "known_devices": list(p.devices), "known_cities": list(p.cities),
+        "shared_enrollment": p.shared_enrollment,
         "baseline_samples": {g: len(v) for g, v in p.samples.items()},
         "history": sessions(limit=200, rider_id=rider_id)[::-1],
     }
