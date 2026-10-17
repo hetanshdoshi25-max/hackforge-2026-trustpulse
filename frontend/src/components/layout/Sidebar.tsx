@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Fingerprint,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,7 +24,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCount = 0 }) => {
   const navItems = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-    { to: '/fleet', label: 'Fleet 3D', icon: Globe2 },
+    { to: '/stage', label: 'Demo Stage', icon: Fingerprint },
+    { to: '/fleet', label: 'City Constellation', icon: Globe2 },
     { to: '/riders', label: 'Riders', icon: Users },
     { to: '/sessions', label: 'Sessions', icon: Radio },
     { to: '/alerts', label: 'Alert Queue', icon: BellRing, badge: alertCount },

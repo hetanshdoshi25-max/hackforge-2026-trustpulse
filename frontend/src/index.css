@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes stagebanner {
+  from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
 @layer base {
   :root {
     --bg-base: #070b14;
@@ -16,11 +21,11 @@
     --accent-cyan: #06b6d4;
     --accent-violet: #8b5cf6;
     
-    --status-allow: #10b981;
-    --status-soft: #f59e0b;
+    --status-allow: #34d399;
+    --status-soft: #fde047;
     --status-stepup: #f97316;
-    --status-review: #ef4444;
-    --status-enroll: #3b82f6;
+    --status-review: #e11d48;
+    --status-enroll: #818cf8;
   }
 
   * {

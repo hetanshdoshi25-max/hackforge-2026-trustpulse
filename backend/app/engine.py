@@ -318,7 +318,7 @@ def _fuse(session, c, only_batch=None):
     return b, max(0.0, min(1.0, fused))
 
 
-def _verdict(b, c, drift_led=False, replay=False, handoff=False):
+def _verdict(b, c, drift_led=False, replay=False, handoff=False, escalated=False):
     if replay:
         return "Inputs replayed from a past login: likely bot / automated takeover"
     if handoff:
@@ -335,6 +335,9 @@ def _verdict(b, c, drift_led=False, replay=False, handoff=False):
         return "Same device & city, but different behaviour: possible account handoff"
     if b >= 0.6:
         return "New context AND different behaviour: likely takeover"
+    if escalated:  # partial mismatch, but enough to act on: say so, don't say "monitoring"
+        return ("Behaviour doesn't match the rider's baseline: possibly a different person" if c < 0.3
+                else "New context and behaviour doesn't match: possibly a different person")
     return "Some behavioural drift, monitoring"
 
 
@@ -433,8 +436,15 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
     if session["handoff"]:
         own = max(own, min(0.99, session["handoff_cusum"] + C.HANDOFF_ALLOWANCE))
 
-    # Account-level CUSUM: recomputed from the session's starting value so multiple
-    # batches in one session don't compound.
+    # Behaviour-only risk: what the PERSON looks like, with context left out (learning gate).
+    beh = C.FUSION_BEHAVIOUR * b if b is not None else own
+    session["max_beh_risk"] = max(session.get("max_beh_risk", 0.0), beh)
+
+    # Account-level CUSUM over the full session risk. (Measured: behaviour-only drift
+    # caught 7 pts fewer rented sessions; a renter's new phone is real evidence. Honest
+    # movers don't pile up drift because a matching login learns the new phone/city
+    # below, so the context risk is gone by their next login.) Recomputed from the
+    # session's starting value so multiple batches don't compound.
     drift = max(0.0, session["drift_base"] + own - C.DRIFT_ALLOWANCE)
     profile.drift = drift
     profile.drift_streak = session["streak_base"] + 1 if own > C.DRIFT_ALLOWANCE else 0
@@ -446,17 +456,25 @@ def process_batch(profile, session, payload, threshold=C.DEFAULT_THRESHOLD, now=
     session["max_risk"] = max(session["max_risk"], risk)
     session["behaviour_risk"] = b
 
+    replay = any(st.get("replay") for st in session["groups"].values())
+    # The core promise: context changed + behaviour matches = same person = no friction.
+    # Context can amplify a suspicious session, never escalate a matching one on its own.
+    session["same_person"] = (
+        b is not None and b < C.BEHAVIOUR_MATCH and not session["drift_led"] and not replay and not session["handoff"]
+    )
+    new_action = "ALLOW" if session["same_person"] else action_for(risk, threshold)
     # Escalation is sticky inside a session: we never silently de-escalate.
-    new_action = action_for(risk, threshold)
     if C.ACTIONS.index(new_action) > C.ACTIONS.index(session["action"]):
         session["action"] = new_action
-    replay = any(st.get("replay") for st in session["groups"].values())
-    session["verdict"] = _verdict(b, c, session["drift_led"], replay, session["handoff"])
+    session["verdict"] = _verdict(b, c, session["drift_led"], replay, session["handoff"],
+                                  escalated=session["action"] in ("STEP_UP", "REVIEW"))
     session["reasons"] = _reasons(session)
     session["timeline"].append({"t": now, "trust": round(100 * (1 - risk)), "action": session["action"]})
 
-    # Adaptive baseline: only clean sessions teach the profile (renters can't poison it).
-    if session["max_risk"] < C.LEARN_MAX_RISK and drift < C.DRIFT_LEARN_MAX:
+    # Adaptive baseline: only sessions whose BEHAVIOUR was clean teach the profile
+    # (renters can't poison it). Judged on behaviour, so a matching login from a new
+    # phone/city also teaches the new phone/city: the next login there is plain ALLOW.
+    if session["max_beh_risk"] < C.LEARN_MAX_RISK and drift < C.DRIFT_LEARN_MAX and session["action"] == "ALLOW":
         learn_behaviour(profile, learnable)
         if not session["context_learned"]:
             learn_context(profile, session["ctx"])

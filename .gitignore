@@ -10,3 +10,10 @@ dist/
 # runtime state (regenerate with the scripts)
 backend/data/profiles.json
 backend/data/sample_fleet.json
+
+# real biometric recordings: never commit
+backend/data/recordings/
+backend/data/real_eval.json
+
+# local tool config
+.claude/

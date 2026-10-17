@@ -26,6 +26,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+const POLICY_ROWS = [
+  { key: 'open_gate', label: 'Open gate (verify once)', ours: false },
+  { key: 'strict_gate', label: 'Strict gate (verify every login)', ours: false },
+  { key: 'context_rules', label: 'Context rules (new device/city)', ours: false },
+  { key: 'trustpulse', label: 'TrustPulse', ours: true },
+] as const;
+
 export const AnalyticsPage: React.FC = () => {
   const [metrics, setMetrics] = useState<TradeoffMetrics | null>(null);
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -87,6 +94,8 @@ export const AnalyticsPage: React.FC = () => {
     if (!metrics || !metrics.risk_histogram) return [];
     const { genuine, takeover, bin_size } = metrics.risk_histogram;
     const len = Math.min(genuine.length, takeover.length);
+    const gTotal = genuine.reduce((a, b) => a + b, 0) || 1;
+    const tTotal = takeover.reduce((a, b) => a + b, 0) || 1;
     const bins = [];
     for (let i = 0; i < len; i++) {
       const start = i * bin_size;
@@ -95,6 +104,8 @@ export const AnalyticsPage: React.FC = () => {
         range: `${start}-${end}%`,
         genuine: genuine[i] || 0,
         takeover: takeover[i] || 0,
+        genuinePct: Number((((genuine[i] || 0) / gTotal) * 100).toFixed(1)),
+        takeoverPct: Number((((takeover[i] || 0) / tTotal) * 100).toFixed(1)),
       });
     }
     return bins;
@@ -354,7 +365,7 @@ export const AnalyticsPage: React.FC = () => {
             </h3>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            Bin size: {metrics.risk_histogram.bin_size}% risk
+            Share of each group per {metrics.risk_histogram.bin_size}-point risk bin
           </span>
         </div>
 
@@ -370,6 +381,7 @@ export const AnalyticsPage: React.FC = () => {
               <YAxis
                 stroke="#64748b"
                 tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
+                tickFormatter={(v: number) => `${v}%`}
               />
               <Tooltip
                 content={({ active, payload }) => {
@@ -378,8 +390,8 @@ export const AnalyticsPage: React.FC = () => {
                     return (
                       <div className="bg-slate-900 border border-slate-700 p-2.5 rounded text-xs font-mono text-slate-200">
                         <div className="text-slate-400 mb-1">Risk Range: {d.range}</div>
-                        <div className="text-emerald-400">Honest Sessions: {d.genuine}</div>
-                        <div className="text-rose-400">Rented Sessions: {d.takeover}</div>
+                        <div>Honest sessions: {d.genuinePct}% ({d.genuine.toLocaleString()})</div>
+                        <div>Rented sessions: {d.takeoverPct}% ({d.takeover.toLocaleString()})</div>
                       </div>
                     );
                   }
@@ -389,8 +401,8 @@ export const AnalyticsPage: React.FC = () => {
               <Legend
                 wrapperStyle={{ fontSize: 11, fontFamily: 'monospace', paddingTop: 10 }}
               />
-              <Bar dataKey="genuine" fill="#10b981" name="Honest Sessions" opacity={0.8} />
-              <Bar dataKey="takeover" fill="#ef4444" name="Rented Sessions" opacity={0.8} />
+              <Bar dataKey="genuinePct" fill="#34d399" name="Honest sessions (% of honest)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="takeoverPct" fill="#e11d48" name="Rented sessions (% of rented)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -424,58 +436,29 @@ export const AnalyticsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1e2c47]/60">
-              {/* Open Gate */}
-              <tr className="hover:bg-slate-800/30 transition">
-                <td className="py-3 px-4 font-bold text-slate-300">
-                  Open Gate (Verify Once)
-                </td>
-                <td className="py-3 px-4">0%</td>
-                <td className="py-3 px-4">0%</td>
-                <td className="py-3 px-4 text-rose-400">0%</td>
-                <td className="py-3 px-4 text-rose-400">0%</td>
-                <td className="py-3 px-4 text-rose-400">0%</td>
-                <td className="py-3 px-4 text-slate-500">—</td>
-              </tr>
-
-              {/* Strict Gate */}
-              <tr className="hover:bg-slate-800/30 transition">
-                <td className="py-3 px-4 font-bold text-slate-300">
-                  Strict Gate (Verify Every Login)
-                </td>
-                <td className="py-3 px-4 text-rose-400">100%</td>
-                <td className="py-3 px-4 text-rose-400">100%</td>
-                <td className="py-3 px-4 text-emerald-400">100%</td>
-                <td className="py-3 px-4 text-emerald-400">100%</td>
-                <td className="py-3 px-4 text-emerald-400">100%</td>
-                <td className="py-3 px-4">1 shift</td>
-              </tr>
-
-              {/* Context Rules */}
-              <tr className="hover:bg-slate-800/30 transition">
-                <td className="py-3 px-4 font-bold text-slate-300">
-                  Context Rules (New Device/City Only)
-                </td>
-                <td className="py-3 px-4">0.56%</td>
-                <td className="py-3 px-4 text-amber-400">28.0%</td>
-                <td className="py-3 px-4">37.8%</td>
-                <td className="py-3 px-4 text-rose-400 font-bold">5.7% (Bypassed!)</td>
-                <td className="py-3 px-4">45.8%</td>
-                <td className="py-3 px-4">1 shift</td>
-              </tr>
-
-              {/* TrustPulse */}
-              <tr className="bg-cyan-950/40 border-l-2 border-cyan-400 hover:bg-cyan-900/40 transition">
-                <td className="py-3.5 px-4 font-extrabold text-cyan-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  TrustPulse (Threshold 70)
-                </td>
-                <td className="py-3.5 px-4 font-bold text-emerald-400">0.19%</td>
-                <td className="py-3.5 px-4 font-bold text-emerald-400">3.4% (Single selfie)</td>
-                <td className="py-3.5 px-4 font-bold text-emerald-400">83.1%</td>
-                <td className="py-3.5 px-4 font-bold text-cyan-300">81.8% (Caught!)</td>
-                <td className="py-3.5 px-4 font-bold text-emerald-400">93.8%</td>
-                <td className="py-3.5 px-4 font-bold text-slate-200">2 shifts (Median)</td>
-              </tr>
+              {POLICY_ROWS.map(({ key, label, ours }) => {
+                const b = metrics.baselines[key];
+                const pct = (v: number) => `${Number(v.toFixed(2))}%`;
+                const shifts = b.median_sessions_to_catch;
+                return (
+                  <tr
+                    key={key}
+                    className={ours ? 'bg-cyan-950/40 border-l-2 border-cyan-400' : 'hover:bg-slate-800/30 transition'}
+                  >
+                    <td className={`py-3 px-4 font-bold ${ours ? 'text-cyan-300' : 'text-slate-300'}`}>
+                      {ours ? `${label} (threshold ${metrics.default_threshold})` : label}
+                    </td>
+                    <td className="py-3 px-4 text-slate-200">{pct(b.false_lockout)}</td>
+                    <td className="py-3 px-4 text-slate-200">{pct(b.honest_riders_ever_stopped)}</td>
+                    <td className="py-3 px-4 text-slate-200">{pct(b.takeover_caught)}</td>
+                    <td className="py-3 px-4 text-slate-200">{pct(b.takeover_caught_same_device)}</td>
+                    <td className="py-3 px-4 text-slate-200">{pct(b.accounts_caught)}</td>
+                    <td className="py-3 px-4 text-slate-200">
+                      {shifts == null ? '—' : `${shifts} shift${shifts === 1 ? '' : 's'}${ours ? ' (median)' : ''}`}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

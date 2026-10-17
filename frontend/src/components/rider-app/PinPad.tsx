@@ -9,11 +9,13 @@ interface PinPadProps {
 
 export const PinPad: React.FC<PinPadProps> = ({ onPinComplete, disabled = false }) => {
   const [pinDigits, setPinDigits] = useState<string[]>([]);
-  const pendingDownRef = useRef<{ key: string; downTime: number; x: number; y: number; size: number } | null>(null);
+  // One entry per finger currently down: fast two-thumb typing presses the next key
+  // before releasing the previous one, and a single "pending" slot would drop a digit.
+  const pendingRef = useRef(new Map<number, { key: string; downTime: number; x: number; y: number; size: number }>());
   const recordedEventsRef = useRef<KeyTelemetry[]>([]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>, digit: string) => {
-    if (disabled || pinDigits.length >= 4) return;
+    if (disabled || recordedEventsRef.current.length + pendingRef.current.size >= 4) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -22,48 +24,43 @@ export const PinPad: React.FC<PinPadProps> = ({ onPinComplete, disabled = false 
     const normalizedY = (e.clientY - centerY) / (rect.height / 2);
     const contactSize = e.width && e.height ? (e.width + e.height) / 2 : 1.0;
 
-    pendingDownRef.current = {
+    pendingRef.current.set(e.pointerId, {
       key: digit,
       downTime: performance.now(),
       x: Math.max(-1, Math.min(1, Number(normalizedX.toFixed(2)))),
       y: Math.max(-1, Math.min(1, Number(normalizedY.toFixed(2)))),
       size: Number(contactSize.toFixed(1)),
-    };
+    });
   };
 
-  const handlePointerUp = (_e: React.PointerEvent<HTMLButtonElement>, digit: string) => {
-    if (disabled || !pendingDownRef.current || pendingDownRef.current.key !== digit) {
-      return;
-    }
-    const upTime = performance.now();
-    const eventRecord: KeyTelemetry = {
-      key: digit,
-      down: Number(pendingDownRef.current.downTime.toFixed(1)),
-      up: Number(upTime.toFixed(1)),
-      x: pendingDownRef.current.x,
-      y: pendingDownRef.current.y,
-      size: pendingDownRef.current.size,
-    };
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const pending = pendingRef.current.get(e.pointerId);
+    if (disabled || !pending) return;
+    pendingRef.current.delete(e.pointerId);
 
-    pendingDownRef.current = null;
-    recordedEventsRef.current.push(eventRecord);
-
-    const nextDigits = [...pinDigits, digit];
+    recordedEventsRef.current.push({
+      key: pending.key,
+      down: Number(pending.downTime.toFixed(1)),
+      up: Number(performance.now().toFixed(1)),
+      x: pending.x,
+      y: pending.y,
+      size: pending.size,
+    });
+    // PIN order = press order, even if the fingers lift in a different order
+    const events = [...recordedEventsRef.current].sort((a, b) => a.down - b.down);
+    const nextDigits = events.map((ev) => ev.key);
     setPinDigits(nextDigits);
 
     if (nextDigits.length === 4) {
-      const fullPin = nextDigits.join('');
-      const events = [...recordedEventsRef.current];
-      // Reset after passing to handler
       setTimeout(() => {
-        onPinComplete(fullPin, events);
+        onPinComplete(nextDigits.join(''), events);
       }, 50);
     }
   };
 
   const handleClear = () => {
     // API contract: If user deletes or resets, clear entire entry & restart capture sequence
-    pendingDownRef.current = null;
+    pendingRef.current.clear();
     recordedEventsRef.current = [];
     setPinDigits([]);
   };
@@ -112,7 +109,8 @@ export const PinPad: React.FC<PinPadProps> = ({ onPinComplete, disabled = false 
               key={k}
               type="button"
               onPointerDown={(e) => handlePointerDown(e, k)}
-              onPointerUp={(e) => handlePointerUp(e, k)}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={(e) => pendingRef.current.delete(e.pointerId)}
               disabled={disabled || pinDigits.length >= 4}
               className="h-16 rounded-2xl bg-[#0f192d] hover:bg-[#15233e] active:bg-cyan-950/80 border border-[#223558] flex flex-col items-center justify-center text-slate-100 font-mono text-2xl font-bold active:scale-95 transition shadow-sm touch-manipulation disabled:opacity-50"
             >

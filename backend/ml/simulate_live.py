@@ -1,7 +1,9 @@
 """Stream synthetic riders into the running API so the dashboard has live traffic.
 
     python -m ml.simulate_live                      # 25 riders, one session every 1.5s
-    python -m ml.simulate_live --riders 40 --interval 0.8 --reset
+    python -m ml.simulate_live --riders 40 --interval 0.8
+
+Each run starts these riders fresh (use --keep to continue existing profiles).
 
 1. Enrolls every rider + fast-forwards a few normal days (sent instantly).
 2. Then replays the rest of each rider's month one session at a time,
@@ -39,7 +41,10 @@ def main():
     ap.add_argument("--riders", type=int, default=25)
     ap.add_argument("--interval", type=float, default=1.5)
     ap.add_argument("--seed", type=int, default=11)
-    ap.add_argument("--reset", action="store_true", help="wipe these riders' profiles first")
+    ap.add_argument("--keep", action="store_true",
+                    help="don't wipe these riders first. Careful: the fleet is generated from a fixed seed, so "
+                         "re-sending it to existing profiles replays identical logins and (correctly) trips replay detection")
+    ap.add_argument("--reset", action="store_true", help=argparse.SUPPRESS)  # old flag, now the default
     ap.add_argument("--warmup", type=int, default=14,
                     help="extra sessions per rider sent instantly after enrollment, so rented accounts show up fast")
     args = ap.parse_args()
@@ -53,7 +58,7 @@ def main():
     random.Random(args.seed).shuffle(fleet)
 
     try:
-        if args.reset:
+        if not args.keep:
             for r in fleet:
                 post(args.api, f"/riders/{r['rider_id']}/reset", {})
         print(f"Enrolling {len(fleet)} riders ({n_rented} of them will be rented out)...")

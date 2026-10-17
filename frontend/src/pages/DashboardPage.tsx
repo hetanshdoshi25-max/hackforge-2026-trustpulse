@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import type { Alert, AppConfig, RiderListItem, Session } from '../types/api';
 import { MetricsGrid } from '../components/dashboard/MetricsGrid';
@@ -7,7 +7,9 @@ import { RecentAlerts } from '../components/dashboard/RecentAlerts';
 import { LoadingState } from '../components/common/LoadingState';
 import { ErrorState } from '../components/common/ErrorState';
 import { useTrustPulseSocket } from '../hooks/useTrustPulseSocket';
-import { ShieldCheck, Info } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Constellation3D, ConstellationLegend } from '../three/Constellation3D';
 
 export const DashboardPage: React.FC = () => {
   const [riders, setRiders] = useState<RiderListItem[]>([]);
@@ -48,6 +50,8 @@ export const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  const heroSessions = useMemo(() => riders.map((r) => r.last).filter((s): s is Session => !!s), [riders]);
+
   if (isLoading) {
     return <LoadingState message="Connecting to TrustPulse Engine & telemetry stream..." />;
   }
@@ -64,32 +68,26 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-violet-950/40 border border-cyan-800/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-cyan-900/40 border border-cyan-500/50 text-cyan-400 shrink-0 mt-0.5">
-            <ShieldCheck className="w-5 h-5" />
+      {/* Live hero: the fleet as a city constellation */}
+      <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#05080f]">
+        <Constellation3D sessions={heroSessions} height={440} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-[#05080f] via-[#05080f]/70 to-transparent p-5 pb-12">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-cyan-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" /> Live fleet · {heroSessions.length} riders
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold font-mono tracking-wider text-slate-100">
-                CONTINUOUS RIDER IDENTITY ENGINE
-              </h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">
-                HackForge 2026
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 font-mono mt-1">
-              "Phone changed, city changed: fine. Person changed: caught."
-            </p>
-          </div>
+          <h2 className="text-2xl font-semibold text-slate-50 md:text-3xl">Phone changed, city changed: fine.</h2>
+          <h2 className="-mt-1 text-2xl font-semibold text-rose-400 md:text-3xl">Person changed: caught.</h2>
         </div>
-
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
-          <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>Behavioral differences dominate; contextual shifts alone never lockout honest riders.</span>
+        <div className="pointer-events-auto absolute right-4 top-4">
+          <Link
+            to="/stage"
+            className="flex items-center gap-2 rounded-xl border border-cyan-500/50 bg-cyan-950/70 px-3 py-2 text-xs font-semibold text-cyan-200 backdrop-blur transition hover:bg-cyan-900/70"
+          >
+            <Fingerprint className="h-4 w-4" /> Open Demo Stage
+          </Link>
         </div>
-      </div>
+        <ConstellationLegend className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#05080f] to-transparent px-5 pb-3 pt-8" />
+      </section>
 
       {/* KPI Cards */}
       <MetricsGrid

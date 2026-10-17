@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import type { ActionType, Session } from '../types/api';
-import { FleetScene } from '../components/fleet/FleetScene';
+import { Constellation3D, ConstellationLegend } from '../three/Constellation3D';
 import { FleetFallback } from '../components/fleet/FleetFallback';
 import { FleetFilters } from '../components/fleet/FleetFilters';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -95,11 +95,14 @@ export const FleetPage: React.FC = () => {
       <div className="relative flex-1 min-h-[500px] flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative min-h-[460px] h-full">
           {viewMode === '3d' ? (
-            <FleetScene
-              sessions={filteredSessions}
-              selectedSession={selectedSession}
-              onSelectSession={setSelectedSession}
-            />
+            <div className="overflow-hidden rounded-xl border border-slate-800">
+              <Constellation3D
+                sessions={filteredSessions}
+                selectedSessionId={selectedSession?.session_id ?? null}
+                onSelectSession={setSelectedSession}
+                height={560}
+              />
+            </div>
           ) : (
             <FleetFallback
               sessions={filteredSessions}
@@ -108,28 +111,7 @@ export const FleetPage: React.FC = () => {
             />
           )}
 
-          {/* Color Legend */}
-          <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-lg p-2.5 text-[11px] font-mono text-slate-300 flex flex-wrap items-center gap-3 shadow-lg pointer-events-none">
-            <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-              Legend:
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <span>Allow (&lt;25% Risk)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              <span>Soft Check (25-50%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-              <span>Step-Up (50-75%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-              <span>Review (&gt;75%)</span>
-            </div>
-          </div>
+          <ConstellationLegend className="absolute bottom-3 left-3 right-3 rounded-lg border border-slate-800 bg-slate-950/80 p-2.5 backdrop-blur-sm pointer-events-none" />
         </div>
 
         {/* Selected rider details side panel */}

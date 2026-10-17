@@ -55,7 +55,7 @@ def main():
     print(f"[OK] Threshold = {cfg['threshold']} ({source})")
     print(slider)
     print(f"[i]  Recording: {'ON' if cfg.get('recording') else 'off'}")
-    print("\nNext: python -m ml.simulate_live --riders 25 --reset   (keeps the dashboard alive)")
+    print("\nNext: python -m ml.simulate_live --riders 25   (keeps the dashboard alive)")
 
 
 if __name__ == "__main__":

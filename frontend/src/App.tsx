@@ -1,20 +1,28 @@
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 
-import { DashboardPage } from './pages/DashboardPage';
-import { FleetPage } from './pages/FleetPage';
-import { RidersPage } from './pages/RidersPage';
-import { RiderDetailPage } from './pages/RiderDetailPage';
-import { SessionsPage } from './pages/SessionsPage';
-import { AlertsPage } from './pages/AlertsPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { RiderAppPage } from './pages/RiderAppPage';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { LoadingState } from './components/common/LoadingState';
+
+// Ops/3D pages load on demand, so the phone opening /rider never downloads three.js.
+const page = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>
+  lazy(() => load().then((m) => ({ default: m[name] })));
+const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
+const FleetPage = page(() => import('./pages/FleetPage'), 'FleetPage');
+const RidersPage = page(() => import('./pages/RidersPage'), 'RidersPage');
+const RiderDetailPage = page(() => import('./pages/RiderDetailPage'), 'RiderDetailPage');
+const SessionsPage = page(() => import('./pages/SessionsPage'), 'SessionsPage');
+const AlertsPage = page(() => import('./pages/AlertsPage'), 'AlertsPage');
+const AnalyticsPage = page(() => import('./pages/AnalyticsPage'), 'AnalyticsPage');
+const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage');
+const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage');
+const StagePage = page(() => import('./pages/StagePage'), 'StagePage');
 
 export function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<LoadingState message="Loading…" />}>
       <Routes>
         {/* Operations Dashboard Routes (wrapped in AppShell) */}
         <Route element={<AppShell />}>
@@ -32,7 +40,11 @@ export function App() {
 
         {/* Rider PWA Route (Mobile-first, standalone) */}
         <Route path="/rider" element={<RiderAppPage />} />
+
+        {/* Projector view for the live demo */}
+        <Route path="/stage" element={<StagePage />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

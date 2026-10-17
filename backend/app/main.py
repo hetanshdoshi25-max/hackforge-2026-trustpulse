@@ -235,6 +235,8 @@ async def session_resolve(sid: str, body: Resolve):
         store.mark_dirty()
         s["status"], s["action"] = "VERIFIED", "ALLOW"
         s["verdict"] = "Verified by reviewer"
+        s["risk"] = 0.0  # a human confirmed the identity: the behavioural doubt is resolved
+        s["timeline"].append({"t": time.time(), "trust": 100, "action": "ALLOW"})
     elif body.decision == "reject":
         s["status"], s["action"] = "BLOCKED", "REVIEW"
         s["verdict"] = "Blocked by reviewer: account handoff confirmed"
@@ -256,7 +258,13 @@ def sessions(limit: int = 100, rider_id: str | None = None):
 
 @app.get("/alerts")
 def alerts(limit: int = 50):
-    return store.alerts[::-1][:limit]
+    """Newest first. An alert is a snapshot of the moment it fired; its `status` is kept
+    live so a reviewer's approve/block shows up in the queue straight away."""
+    out = []
+    for a in store.alerts[::-1][:limit]:
+        s = store.sessions.get(a.get("session_id"))
+        out.append({**a, "status": s["status"]} if s else a)
+    return out
 
 
 @app.get("/riders")

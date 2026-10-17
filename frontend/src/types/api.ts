@@ -5,7 +5,7 @@
 
 export type ActionType = 'ENROLLING' | 'ALLOW' | 'SOFT_CHECK' | 'STEP_UP' | 'REVIEW';
 export type SessionStatusType = 'ACTIVE' | 'PENDING_REVIEW' | 'VERIFIED' | 'BLOCKED';
-export type AlertType = 'SOFT_CHECK' | 'STEP_UP' | 'REVIEW' | 'SELFIE_SUBMITTED';
+export type AlertType = 'SOFT_CHECK' | 'STEP_UP' | 'REVIEW' | 'SELFIE_SUBMITTED' | 'PIN_LOCKOUT';
 
 export interface TimelineEntry {
   t: number;
@@ -16,6 +16,7 @@ export interface TimelineEntry {
 export interface SignalGroupDetail {
   match: number; // 0-100 percentage match with baseline
   top: [string, number][]; // [feature_name, anomaly_distance]
+  z?: Record<string, number>; // every feature's deviation in std-devs (3D fingerprint)
 }
 
 export interface Session {
@@ -53,6 +54,7 @@ export interface RiderListItem {
   sessions: number;
   known_devices: number;
   known_cities: string[];
+  shared_enrollment?: boolean;
   last: Session | null;
 }
 
@@ -136,6 +138,7 @@ export interface ResolvePayload {
 export interface AppConfig {
   threshold: number;
   min_enroll: number;
+  recording?: boolean;
 }
 
 export interface TradeoffCurvePoint {

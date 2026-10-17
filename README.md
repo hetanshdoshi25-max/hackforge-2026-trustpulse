@@ -42,6 +42,8 @@ keep working, and a different person behind the same account gets escalated.
 - **Poison-proof adaptive baseline.** Only clean sessions update the baseline, so a renter can't slowly teach the system their habits. An honest rider who passes a step-up is re-learned, so a new phone costs **at most one selfie**.
 - **Personal calibration.** Some people are naturally less consistent. Each rider's tolerance is scaled by how much they vary *from themselves*, so honest-but-messy riders aren't flagged (capped, so renters still stand out).
 - **Replay / bot detection.** A recorded PIN entry played back matches a past login *too perfectly*. Humans never repeat timings to the millisecond, so it goes straight to review.
+- **Mid-session handoff.** The most common real pattern is that the owner types the PIN and then hands the phone over. Each swipe batch is scored on its own (averaged over the last 3 gestures to cancel noise), and an in-session CUSUM flags *"clean login, then a different person"*. Measured on synthetic shifts: caught within 5 swipes 21/60 → **32/60**, while false flags on 30-swipe honest shifts dropped 4/150 → **1/150**.
+- **Shared from day one.** When enrollment completes, the PIN logins are checked for two clusters (2-means). One person's logins form one cloud; two people taking turns form two. 0/500 honest enrollments flagged, 66% of two-stranger enrollments caught. Look-alike relatives mostly pass, and that's a known limit.
 - **PIN brute-force lockout.** 5 wrong PINs lock the account for 5 minutes and raise a dashboard alert.
 - **Privacy.** The server never stores raw events: profiles keep only derived numbers (timings, angles, speeds), and the PIN is stored as a salted PBKDF2 hash. Next step: compute the features on-device so raw events never leave the phone.
 
@@ -63,6 +65,23 @@ A rented account is caught after a **median of 2 sessions**. The misses are most
 whose habits sit halfway between the owner's and a stranger's. All numbers are on **synthetic** data;
 the next step is calibrating on real rider telemetry.
 
+## Real-human validation
+
+Synthetic numbers prove the logic; real people prove it works. Once the rider app's PIN pad is live:
+
+1. Start the server with recording on (cmd: `set TRUSTPULSE_RECORD=1`, PowerShell: `$env:TRUSTPULSE_RECORD="1"`).
+2. Everyone types the **same PIN** (e.g. `2580`) under their **own rider ID** (`P1`, `P2`, ...) on the **same phone**, 15–20 logins each, plus a swipe after each login.
+3. Check progress at `http://127.0.0.1:8000/recordings/summary`.
+4. Run `python -m ml.real_eval`. You get, per person and overall:
+   - owner allowed / not blocked, impostor flagged / stepped up on a **single** login
+   - EER (equal error rate) and which signal separates people best
+   - how many logins an impostor survives when they keep using the account (drift)
+   - a **recommended demo threshold** from your own data. Apply it with `POST /config`.
+
+Phones don't send riding data, so phone-only risk scores run lower than the synthetic fleet's. That's why the threshold should come from real data.
+
+Privacy: PIN digits are never written (only a hash proving everyone typed the same PIN), and `data/recordings/` is git-ignored. Delete it after the event.
+
 ## Quick start (Windows, from `backend/`)
 
 ```bash
@@ -78,7 +97,7 @@ API docs: http://127.0.0.1:8000/docs · Contract for the app & dashboard: [docs/
 
 In a second terminal, stream live traffic for the dashboard:
 ```bash
-python -m ml.simulate_live --riders 25 --reset
+python -m ml.simulate_live --riders 25
 ```
 
 Run the end-to-end test:
@@ -87,6 +106,21 @@ python -m tests.test_flow
 ```
 
 > On Windows use `127.0.0.1` instead of `localhost` in scripts and proxies (`localhost` tries IPv6 first and adds ~2 s per request).
+
+## Demo day
+
+**Before going on stage:**
+```bash
+python -m ml.demo_reset
+```
+This wipes `DEMO1`, sets the threshold (from `ml.real_eval` if you ran it), and checks the API and slider data.
+Then enroll DEMO1 with 15 logins and start `python -m ml.simulate_live --riders 25`.
+
+**Phone can't reach the laptop?** Hackathon WiFi often isolates devices from each other. Try in this order:
+1. **Phone hotspot (most reliable):** connect the laptop to the phone's hotspot. Run `ipconfig` and use the laptop's IPv4 address in the app URL.
+2. **Windows Firewall:** when Python asks, allow it on **Private** networks (or allow port 8000 and the app's port).
+3. **ngrok (works on any network, and gives real HTTPS so the phone sensors work):** `ngrok http 5173` for the rider app's dev server. If Vite rejects the host, add `server: { allowedHosts: true }` to `vite.config.js`. The app's `/api` proxy still reaches the backend locally.
+4. **Last resort:** play the backup video.
 
 ## Repo layout
 
@@ -99,12 +133,16 @@ backend/
     store.py       in-memory state + profiles.json
     schemas.py     request bodies (the API contract)
     main.py        FastAPI routes + WebSocket
+    recorder.py    optional recording of real sessions (TRUSTPULSE_RECORD=1)
   ml/
     data_gen.py    synthetic rider personas & scenarios
     evaluate.py    trade-off curve + baselines → data/tradeoff.json
     simulate_live.py  streams the fleet into the API for the live dashboard
+    real_eval.py   validates on real people recorded from the app
+    demo_reset.py  one-command pre-demo reset + checks
   tests/test_flow.py
 docs/API.md        contract for Member B (rider app + dashboard)
+docs/PITCH.md      slides, 3-min script, judge Q&A, demo checklist
 ```
 
 ## Team split

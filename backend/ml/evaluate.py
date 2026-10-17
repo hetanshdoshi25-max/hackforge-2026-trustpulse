@@ -3,7 +3,7 @@
 Outputs data/tradeoff.json, which powers the dashboard's Strict <-> Open slider
 and the comparison slide.
 
-    python -m ml.evaluate              # 500 riders x 30 days, every threshold (uses all CPU cores)
+    python -m ml.evaluate              # 500 riders x 30 days, every threshold (4 worker processes)
     python -m ml.evaluate --riders 100 # quicker
 
 Step-ups are simulated the way they'd play out for real: an honest rider passes the
@@ -51,7 +51,8 @@ def replay(threshold):
                 verified_cities.add(city)
                 continue
 
-            flagged = 100 * sess["risk"] >= threshold
+            # what the rider actually experiences: the engine's action, not the raw score
+            flagged = sess["action"] in ("STEP_UP", "REVIEW")
             if flagged and s["label"] == "genuine":
                 verify_identity(prof, sess)  # honest rider passes the selfie
 
@@ -105,11 +106,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--riders", type=int, default=500)
     ap.add_argument("--days", type=int, default=30)
+    ap.add_argument("--workers", type=int, default=4,
+                    help="parallel replays; each holds the whole synthetic fleet in RAM (~150 MB at 500 riders)")
     args = ap.parse_args()
 
     t0 = time.time()
     T = C.DEFAULT_THRESHOLD
-    with Pool(initializer=_init, initargs=(args.riders, args.days)) as pool:
+    with Pool(processes=max(1, args.workers), initializer=_init, initargs=(args.riders, args.days)) as pool:
         runs = dict(pool.map(replay, sorted(set(THRESHOLDS) | {T})))
     rows = runs[T]
 

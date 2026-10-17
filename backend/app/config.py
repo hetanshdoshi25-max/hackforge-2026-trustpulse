@@ -86,6 +86,10 @@ HANDOFF_LOGIN_MAX = 0.30
 SMOOTHED_GROUPS = ("touch", "motion")
 SMOOTH_WINDOW = 3
 
+# Behaviour risk below this = "same person": the session is ALLOWed whatever the
+# context did (new phone/SIM/city), and the new context is learned.
+BEHAVIOUR_MATCH = 0.30
+
 # Session risk smoothing between batches.
 SESSION_SMOOTHING = 0.3
 

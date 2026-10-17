@@ -49,7 +49,8 @@ const RiderMarker: React.FC<{
           e.stopPropagation();
           onSelect(session);
         }}
-        cursor="pointer"
+        onPointerOver={() => (document.body.style.cursor = 'pointer')}
+        onPointerOut={() => (document.body.style.cursor = '')}
       >
         <sphereGeometry args={[isSelected ? 0.08 : 0.05, 16, 16]} />
         <meshStandardMaterial

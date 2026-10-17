@@ -1,12 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { Package, ChevronRight, CheckCircle2, Navigation } from 'lucide-react';
 import { api } from '../../services/api';
-import type { Session, TouchTelemetry } from '../../types/api';
+import type { MotionTelemetry, Session, TouchTelemetry } from '../../types/api';
 
 interface DemoOrderScreenProps {
   session: Session;
   onSessionUpdate: (updatedSession: Session) => void;
   onTriggerStepUp: () => void;
+  /** motion samples recorded since a performance.now() time, so swipes carry the phone grip too */
+  motionSince?: (t0: number) => MotionTelemetry[];
 }
 
 interface DemoOrder {
@@ -53,6 +55,7 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
   session,
   onSessionUpdate,
   onTriggerStepUp,
+  motionSince,
 }) => {
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(0);
   const [isAccepted, setIsAccepted] = useState(false);
@@ -145,11 +148,13 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
       };
 
       try {
+        const motion = motionSince?.(start.time - 300) ?? [];
         const updated = await api.sendSessionEvents(session.session_id, {
           touches: [touchEvent],
+          ...(motion.length ? { motion } : {}),
         });
         onSessionUpdate(updated);
-        if (updated.action === 'STEP_UP') {
+        if (updated.action === 'STEP_UP' || updated.action === 'REVIEW') {
           onTriggerStepUp();
         }
       } catch (err) {

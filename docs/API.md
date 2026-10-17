@@ -130,7 +130,7 @@ Colour code suggestion: `ALLOW` green · `SOFT_CHECK` yellow · `STEP_UP` orange
 
 | Method | Path | What |
 |---|---|---|
-| GET | `/riders` | All riders, each with the `last` Session object, enroll progress, known cities |
+| GET | `/riders` | All riders, each with the `last` Session object, enroll progress, known cities, `shared_enrollment` (true = enrollment looked like 2 people; show a red "SHARED" badge) |
 | GET | `/riders/{id}` | Rider detail + `history` (sessions oldest→newest), good for the trust timeline chart |
 | POST | `/riders/{id}/reset` | Wipe a rider (to re-do the demo enrollment). Also clears a PIN lockout |
 | GET | `/riders/{id}/baseline` | **Debug:** learned mean/std per feature, calibration factor, last session's biggest gaps. Use it when testing real phone data |
@@ -138,7 +138,8 @@ Colour code suggestion: `ALLOW` green · `SOFT_CHECK` yellow · `STEP_UP` orange
 | GET | `/alerts?limit=50` | Alert queue, newest first. Session object + `alert_type` (`SOFT_CHECK`/`STEP_UP`/`REVIEW`/`SELFIE_SUBMITTED`/`PIN_LOCKOUT`) + `alert_at`. `PIN_LOCKOUT` alerts have `session_id: null` and `trust: null` |
 | GET | `/session/{id}/selfie` | `{ "image": "data:image/jpeg;base64,..." }` |
 | POST | `/session/{id}/resolve` | `{ "decision": "approve" \| "reject" }` reviewer button |
-| GET | `/config` | `{ "threshold": 70, "min_enroll": 8 }` |
+| GET | `/config` | `{ "threshold": 70, "min_enroll": 8, "recording": false }`. Show a small "● REC" badge when `recording` is true |
+| GET | `/recordings/summary` | Real-data collection progress: `{ "people": { "P1": {"pin_logins": 12, "distinct_pins": 1} }, "same_pin_for_everyone": true }` |
 | POST | `/config` | `{ "threshold": 55 }` sets live strictness. **Lower = stricter.** |
 | GET | `/metrics/tradeoff` | Data for the Strict ↔ Open slider (below) |
 | WS | `/ws` | Live push. Messages: `{"type": "session" \| "alert" \| "config" \| "rider_reset", "data": {...}}` |

@@ -83,6 +83,40 @@ def test_full_flow():
     assert RID not in store.profiles
 
 
+def test_new_phone_at_demo_threshold():
+    """The promise at the strict demo threshold: new phone + new city + same person = no friction,
+    and the new phone/city are learned, so the next login there carries no context risk."""
+    client = TestClient(app)
+    rng = np.random.default_rng(11)
+    owner, rid, pin = make_persona(rng), "TEST_MOVER", "4646"
+    client.post(f"/riders/{rid}/reset")
+    client.post("/config", json={"threshold": 45})
+    try:
+        base = {"rider_id": rid, "pin": pin, "device_id": "phone-A", "city": "Mumbai", "lat": 19.07, "lon": 72.87}
+        ts = 1_760_000_000
+
+        def login(**ctx):
+            nonlocal ts
+            ts += 2 * 86400  # moved over a couple of days, not "impossible travel"
+            sid = client.post("/session/start", json={**base, **ctx, "ts": ts}).json()["session_id"]
+            pl = sample_payload(owner, pin, rng)
+            pl.pop("riding")
+            return client.post(f"/session/{sid}/events", json=pl).json()
+
+        for _ in range(C.MIN_ENROLL + 2):
+            login()
+        moved = {"device_id": "phone-B", "city": "Pune", "lat": 18.52, "lon": 73.85}
+        first = login(**moved)
+        print("mover @45      ", first["trust"], first["action"], "| context", first["context_risk"], "|", first["verdict"])
+        assert first["action"] == "ALLOW", first
+        assert first["context_risk"] > 30
+        again = login(**moved)
+        assert again["action"] == "ALLOW" and again["context_risk"] == 0, again
+    finally:
+        client.post("/config", json={"threshold": C.DEFAULT_THRESHOLD})
+        client.post(f"/riders/{rid}/reset")
+
+
 def test_replay_attack():
     """A bot replaying the owner's recorded PIN entry matches TOO perfectly."""
     client = TestClient(app)
@@ -170,6 +204,7 @@ def test_pin_lockout():
 
 if __name__ == "__main__":
     test_full_flow()
+    test_new_phone_at_demo_threshold()
     test_replay_attack()
     test_mid_session_handoff()
     test_shared_from_day_one()

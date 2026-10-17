@@ -37,6 +37,9 @@ function getOrCreateDeviceId(): string {
   return devId;
 }
 
+// ~5 s of samples at 60 Hz
+const MOTION_BUFFER = 300;
+
 export const RiderAppPage: React.FC = () => {
   // Demo configuration state
   const [riderId, setRiderId] = useState('DEMO1');
@@ -61,13 +64,14 @@ export const RiderAppPage: React.FC = () => {
     let motionListener: ((e: DeviceMotionEvent) => void) | null = null;
     let orientationListener: ((e: DeviceOrientationEvent) => void) | null = null;
 
-    let currentBeta = 0;
-    let currentGamma = 0;
+    // null (not 0) until the sensor reports: a fake 0 would look like a real tilt to the engine
+    let currentBeta: number | null = null;
+    let currentGamma: number | null = null;
 
     if (window.DeviceOrientationEvent) {
       orientationListener = (e: DeviceOrientationEvent) => {
-        currentBeta = e.beta ? Number(e.beta.toFixed(1)) : 0;
-        currentGamma = e.gamma ? Number(e.gamma.toFixed(1)) : 0;
+        currentBeta = e.beta === null ? null : Number(e.beta.toFixed(1));
+        currentGamma = e.gamma === null ? null : Number(e.gamma.toFixed(1));
       };
       window.addEventListener('deviceorientation', orientationListener);
     }
@@ -76,16 +80,18 @@ export const RiderAppPage: React.FC = () => {
       setSensorStatus('listening');
       motionListener = (e: DeviceMotionEvent) => {
         const acc = e.accelerationIncludingGravity;
-        if (acc && motionSamplesRef.current.length < 50) {
-          motionSamplesRef.current.push({
-            t: Number(performance.now().toFixed(1)),
-            ax: acc.x ? Number(acc.x.toFixed(2)) : 0,
-            ay: acc.y ? Number(acc.y.toFixed(2)) : 0,
-            az: acc.z ? Number(acc.z.toFixed(2)) : 0,
-            beta: currentBeta,
-            gamma: currentGamma,
-          });
-        }
+        if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
+        // Rolling buffer: always the most recent ~5 s, so a login sends what happened WHILE typing.
+        const buf = motionSamplesRef.current;
+        buf.push({
+          t: Number(performance.now().toFixed(1)),
+          ax: Number(acc.x.toFixed(2)),
+          ay: Number(acc.y.toFixed(2)),
+          az: Number(acc.z.toFixed(2)),
+          beta: currentBeta,
+          gamma: currentGamma,
+        });
+        if (buf.length > MOTION_BUFFER) buf.splice(0, buf.length - MOTION_BUFFER);
       };
       window.addEventListener('devicemotion', motionListener);
     } else {
@@ -98,6 +104,13 @@ export const RiderAppPage: React.FC = () => {
     };
   }, []);
 
+  // Motion samples since a performance.now() timestamp, thinned to <= 60 (the engine averages them).
+  const motionSince = (t0: number): MotionTelemetry[] => {
+    const recent = motionSamplesRef.current.filter((m) => m.t >= t0);
+    const step = Math.max(1, Math.ceil(recent.length / 60));
+    return recent.filter((_, i) => i % step === 0);
+  };
+
   // Request iOS permission if needed
   const requestIosSensors = async () => {
     try {
@@ -109,6 +122,13 @@ export const RiderAppPage: React.FC = () => {
         if (permission === 'granted') {
           setSensorStatus('listening');
         }
+      }
+      // iOS gates tilt (beta/gamma) separately from acceleration.
+      const DeviceOrientationEventAny = window.DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<'granted' | 'denied'>;
+      };
+      if (typeof DeviceOrientationEventAny.requestPermission === 'function') {
+        await DeviceOrientationEventAny.requestPermission();
       }
     } catch {
       // ignore
@@ -141,9 +161,8 @@ export const RiderAppPage: React.FC = () => {
     try {
       const session = await api.startSession(payload);
 
-      // Now send behavioral keystrokes + motion telemetry
-      const motionData = [...motionSamplesRef.current];
-      motionSamplesRef.current = []; // reset for next round
+      // Now send behavioral keystrokes + the motion recorded while the PIN was being typed
+      const motionData = motionSince(keystrokes.length ? keystrokes[0].down - 300 : performance.now() - 3000);
 
       const scoredSession = await api.sendSessionEvents(session.session_id, {
         keystrokes,
@@ -152,7 +171,7 @@ export const RiderAppPage: React.FC = () => {
 
       setCurrentSession(scoredSession);
 
-      if (scoredSession.action === 'STEP_UP') {
+      if (scoredSession.action === 'STEP_UP' || scoredSession.action === 'REVIEW') {
         setShowStepUpModal(true);
       }
     } catch (err: unknown) {
@@ -162,6 +181,23 @@ export const RiderAppPage: React.FC = () => {
       setIsLoggingIn(false);
     }
   };
+
+  const sessionId = currentSession?.session_id;
+  const awaitingDecision =
+    !!currentSession &&
+    !showStepUpModal &&
+    (currentSession.action === 'REVIEW' || currentSession.status === 'PENDING_REVIEW');
+  useEffect(() => {
+    if (!sessionId || !awaitingDecision) return;
+    const t = window.setInterval(async () => {
+      try {
+        setCurrentSession(await api.getSession(sessionId));
+      } catch {
+        // retry on the next tick
+      }
+    }, 3000);
+    return () => window.clearInterval(t);
+  }, [sessionId, awaitingDecision]);
 
   const handleLogout = () => {
     setCurrentSession(null);
@@ -350,10 +386,12 @@ export const RiderAppPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800 text-xs space-y-1">
                   <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Behavior Verified — Session Active</span>
+                    <span>{currentSession.status === 'VERIFIED' ? 'Identity Verified — Session Active' : 'Behavior Verified — Session Active'}</span>
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Your typing and motion match your baseline. You are cleared for delivery orders.
+                    {currentSession.status === 'VERIFIED'
+                      ? 'The operations team confirmed it’s you. You are cleared for delivery orders.'
+                      : 'Your typing and motion match your baseline. You are cleared for delivery orders.'}
                   </p>
                 </div>
               )}
@@ -388,16 +426,38 @@ export const RiderAppPage: React.FC = () => {
                 </div>
               )}
 
-              {currentSession.action === 'REVIEW' && (
-                <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-xs space-y-2 text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-rose-400 font-bold">
+              {currentSession.status === 'BLOCKED' ? (
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-700 text-xs space-y-1 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-rose-300 font-bold">
                     <AlertTriangle className="w-4 h-4" />
-                    <span>Session Paused Under Review</span>
+                    <span>Account access blocked</span>
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Operations reviewer is evaluating this session. Please hold on.
+                    A reviewer confirmed this session wasn't the registered rider. Contact fleet support.
                   </p>
                 </div>
+              ) : (
+                currentSession.action === 'REVIEW' && (
+                  <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-xs space-y-2 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-rose-400 font-bold">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Session Paused Under Review</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      {currentSession.has_selfie
+                        ? 'Your selfie is with the operations team. This screen updates as soon as they decide.'
+                        : 'Send a verification selfie so the operations team can confirm it’s you.'}
+                    </p>
+                    {!currentSession.has_selfie && (
+                      <button
+                        onClick={() => setShowStepUpModal(true)}
+                        className="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition"
+                      >
+                        Send Verification Selfie
+                      </button>
+                    )}
+                  </div>
+                )
               )}
 
               {/* Trust Score & Metrics summary */}
@@ -413,6 +473,7 @@ export const RiderAppPage: React.FC = () => {
               currentSession.action === 'SOFT_CHECK') && (
               <DemoOrderScreen
                 session={currentSession}
+                motionSince={motionSince}
                 onSessionUpdate={setCurrentSession}
                 onTriggerStepUp={() => setShowStepUpModal(true)}
               />
