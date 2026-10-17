@@ -1,0 +1,86 @@
+"""End-to-end API test: enroll -> genuine -> new phone -> takeover -> selfie -> reviewer.
+
+    python -m tests.test_flow       (or: pytest tests)
+"""
+import numpy as np
+from fastapi.testclient import TestClient
+
+from app import config as C
+from app.main import app
+from app.store import store
+from ml.data_gen import make_persona, new_phone_shift, sample_payload
+
+RID = "TEST_RIDER"
+
+
+def test_full_flow():
+    client = TestClient(app)
+    rng = np.random.default_rng(1)
+    owner, renter = make_persona(rng), make_persona(rng)
+    pin = "2580"
+    base = {"rider_id": RID, "name": "Test Rider", "pin": pin, "device_id": "phone-A", "sim_id": "sim-1",
+            "city": "Mumbai", "lat": 19.07, "lon": 72.87}
+    client.post(f"/riders/{RID}/reset")
+    ts = 1_760_000_000
+
+    def login(persona, **ctx):
+        nonlocal ts
+        ts += 6 * 3600
+        s = client.post("/session/start", json={**base, **ctx, "ts": ts}).json()
+        return client.post(f"/session/{s['session_id']}/events", json=sample_payload(persona, pin, rng)).json()
+
+    with client.websocket_connect("/ws") as ws:
+        # 1. Enrollment
+        for i in range(C.MIN_ENROLL):
+            out = login(owner)
+            assert out["action"] == "ENROLLING", out
+        assert ws.receive_json()["type"] == "session"
+
+    # 2. Wrong PIN is rejected
+    r = client.post("/session/start", json={**base, "pin": "0000"})
+    assert r.status_code == 401
+
+    # 3. Same person, same phone -> allowed
+    out = login(owner)
+    print("genuine        ", out["trust"], out["action"], "|", out["verdict"])
+    assert out["action"] == "ALLOW"
+
+    # 4. Same person, new phone + new city -> still allowed (context changed, person same)
+    out = login(new_phone_shift(owner, rng), device_id="phone-B", city="Pune", lat=18.52, lon=73.85)
+    print("new phone+city ", out["trust"], out["action"], "|", out["verdict"])
+    assert out["action"] in ("ALLOW", "SOFT_CHECK"), out
+    assert out["context_risk"] > 30
+
+    # 5. Different person, SAME phone + city -> escalated within a few shifts
+    #    (a single borderline session only gets a soft check; drift accumulates)
+    for shift in range(1, 4):
+        out = login(renter)
+        print(f"takeover shift {shift}", out["trust"], out["action"], "|", out["verdict"])
+        assert out["action"] != "ALLOW", out
+        if out["action"] in ("STEP_UP", "REVIEW"):
+            break
+    print("   reasons:", out["reasons"])
+    assert out["action"] in ("STEP_UP", "REVIEW"), out
+    sid = out["session_id"]
+
+    # 6. Selfie -> review queue -> reviewer rejects
+    assert client.post(f"/session/{sid}/stepup", json={"image": "data:image/jpeg;base64,AAAA"}).json()["status"] == "PENDING_REVIEW"
+    assert client.get(f"/session/{sid}/selfie").json()["image"].startswith("data:image")
+    assert any(a["session_id"] == sid for a in client.get("/alerts").json())
+    assert client.post(f"/session/{sid}/resolve", json={"decision": "reject"}).json()["status"] == "BLOCKED"
+
+    # 7. Dashboard endpoints
+    riders = client.get("/riders").json()
+    assert any(r["rider_id"] == RID for r in riders)
+    detail = client.get(f"/riders/{RID}").json()
+    assert len(detail["history"]) == C.MIN_ENROLL + 2 + shift
+    assert client.post("/config", json={"threshold": 55}).json()["threshold"] == 55
+    client.post("/config", json={"threshold": C.DEFAULT_THRESHOLD})
+
+    client.post(f"/riders/{RID}/reset")
+    assert RID not in store.profiles
+
+
+if __name__ == "__main__":
+    test_full_flow()
+    print("\nALL CHECKS PASSED")
