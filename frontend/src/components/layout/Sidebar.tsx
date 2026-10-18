@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Fingerprint,
+  Network,
+  Trophy,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -25,10 +27,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, alertCoun
   const navItems = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { to: '/stage', label: 'Demo Stage', icon: Fingerprint },
+    { to: '/challenge', label: 'Challenge', icon: Trophy },
     { to: '/fleet', label: 'City Constellation', icon: Globe2 },
     { to: '/riders', label: 'Riders', icon: Users },
     { to: '/sessions', label: 'Sessions', icon: Radio },
     { to: '/alerts', label: 'Alert Queue', icon: BellRing, badge: alertCount },
+    { to: '/rings', label: 'Rental Rings', icon: Network },
     { to: '/analytics', label: 'Trade-off Curve', icon: Sliders },
     { to: '/settings', label: 'Config', icon: Settings },
   ];

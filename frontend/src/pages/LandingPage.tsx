@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bike, MonitorPlay, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Bike, MonitorPlay, ShieldCheck, Trophy } from 'lucide-react';
 
 /**
  * Entry point: who are you? Riders and the ops team are different people on
@@ -67,12 +67,14 @@ export const LandingPage: React.FC = () => (
         </Link>
       </div>
 
-      <Link
-        to="/stage"
-        className="mt-8 flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-200"
-      >
-        <MonitorPlay className="h-4 w-4" /> Presenting? Open the Demo Stage
-      </Link>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+        <Link to="/play" className="flex items-center gap-2 text-cyan-300 transition hover:text-cyan-200">
+          <Trophy className="h-4 w-4" /> Take the challenge: can you fool TrustPulse?
+        </Link>
+        <Link to="/stage" className="flex items-center gap-2 text-slate-500 transition hover:text-slate-200">
+          <MonitorPlay className="h-4 w-4" /> Presenting? Open the Demo Stage
+        </Link>
+      </div>
     </div>
 
     <div className="absolute bottom-4 text-xs text-slate-600">HackForge 2026 · Team Braniacs</div>

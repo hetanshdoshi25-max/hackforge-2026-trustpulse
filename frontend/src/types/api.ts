@@ -85,6 +85,7 @@ export interface SessionStartPayload {
   lat?: number | null;
   lon?: number | null;
   ts?: number | null;
+  challenger?: string | null;
 }
 
 export interface KeyTelemetry {
@@ -192,7 +193,64 @@ export interface TradeoffMetrics {
   risk_histogram: RiskHistogram;
 }
 
-export type WebSocketMessageType = 'session' | 'alert' | 'config' | 'rider_reset';
+export interface RingEvidence {
+  a: string;
+  b: string;
+  behaviour_match: number | null;
+  distance: number | null;
+  shared_devices: string[];
+}
+
+export interface RentalRing {
+  ring_id: string;
+  accounts: string[];
+  members: { rider_id: string; name: string; sightings: number; cities: string[] }[];
+  sightings: number;
+  first_seen: number;
+  last_seen: number;
+  evidence: RingEvidence[];
+  device_evidence: boolean;
+}
+
+export interface RingsResponse {
+  rings: RentalRing[];
+  sightings: number;
+  accounts_flagged: number;
+}
+
+export interface ChallengeAttempt {
+  challenger: string;
+  session_id: string;
+  at: number;
+  trust: number;
+  action: ActionType;
+  behaviour_match: number | null;
+  fooled: boolean;
+}
+
+export interface ChallengeBoard {
+  target: string;
+  target_name: string;
+  target_enrolled: boolean;
+  pin: string | null;
+  attempts: number;
+  fooled: number;
+  leaderboard: { challenger: string; attempts: number; best_match: number | null; best_trust: number; fooled: boolean; last_at: number }[];
+  latest: ChallengeAttempt | null;
+}
+
+export interface BenchmarkResult {
+  sessions_scored: number;
+  riders: number;
+  sessions_per_second_one_core: number;
+  sessions_per_hour_one_core: number;
+  latency_ms: { median: number; p95: number; p99: number };
+  cores_on_this_machine: number;
+  machine: string;
+  note: string;
+}
+
+export type WebSocketMessageType = 'session' | 'alert' | 'config' | 'rider_reset' | 'challenge';
 
 export interface WebSocketMessage<T = unknown> {
   type: WebSocketMessageType;

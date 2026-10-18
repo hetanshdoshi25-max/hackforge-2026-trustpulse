@@ -19,6 +19,9 @@ const AnalyticsPage = page(() => import('./pages/AnalyticsPage'), 'AnalyticsPage
 const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage');
 const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage');
 const StagePage = page(() => import('./pages/StagePage'), 'StagePage');
+const RingsPage = page(() => import('./pages/RingsPage'), 'RingsPage');
+const ChallengePage = page(() => import('./pages/ChallengePage'), 'ChallengePage');
+const PlayPage = page(() => import('./pages/PlayPage'), 'PlayPage');
 
 export function App() {
   return (
@@ -36,6 +39,7 @@ export function App() {
           <Route path="/riders/:id" element={<RiderDetailPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/rings" element={<RingsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
@@ -46,6 +50,10 @@ export function App() {
 
         {/* Projector view for the live demo */}
         <Route path="/stage" element={<StagePage />} />
+
+        {/* "Can you fool TrustPulse?": projector board + phone page */}
+        <Route path="/challenge" element={<ChallengePage />} />
+        <Route path="/play" element={<PlayPage />} />
       </Routes>
       </Suspense>
     </BrowserRouter>

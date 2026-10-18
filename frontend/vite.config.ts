@@ -32,6 +32,22 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // Pages load lazily, so without this Vite discovers recharts/three on first visit and
+    // pre-bundles them separately, which can leave two React copies ("Invalid hook call").
+    // Listing them makes Vite bundle everything together at startup.
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react-router-dom',
+        'recharts',
+        'three',
+        '@react-three/fiber',
+        '@react-three/drei',
+        'lucide-react',
+      ],
+    },
     build: {
       rollupOptions: {
         external: ['hls.js'],

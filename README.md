@@ -44,6 +44,10 @@ keep working, and a different person behind the same account gets escalated.
 - **Replay / bot detection.** A recorded PIN entry played back matches a past login *too perfectly*. Humans never repeat timings to the millisecond, so it goes straight to review.
 - **Mid-session handoff.** The most common real pattern is that the owner types the PIN and then hands the phone over. Each swipe batch is scored on its own (averaged over the last 3 gestures to cancel noise), and an in-session CUSUM flags *"clean login, then a different person"*. Measured on synthetic shifts: caught within 5 swipes 21/60 → **32/60**, while false flags on 30-swipe honest shifts dropped 4/150 → **1/150**.
 - **Shared from day one.** When enrollment completes, the PIN logins are checked for two clusters (2-means). One person's logins form one cloud; two people taking turns form two. 0/500 honest enrollments flagged, 66% of two-stranger enrollments caught. Look-alike relatives mostly pass, and that's a known limit.
+- **Rental-ring detection.** Renting is a business: one renter often rides several accounts. Every flagged session is a sighting of an unknown person; sightings are compared ACROSS accounts with a PIN-independent behaviour signature (average key hold, thumb position on keys, finger size, grip, swipe style) and by shared phones. On a synthetic fleet with rings of 3 (`python -m ml.ring_eval`): **97.9% of ring accounts linked, 100% precision, 0 honest accounts in any ring** (shared phones alone: 31%).
+- **"Can you fool TrustPulse?"** Judges get the rider's PIN and try to log in as them (`/play` on a phone, leaderboard at `/challenge`). Attempts are scored on a copy of the profile, so the real rider is never affected, and every attempt is real impostor data.
+- **Account time machine.** On a rider's page, play the account's history session by session and watch the fingerprint: weeks of the owner inside the shell, then the day someone else took over.
+- **Measured scale.** `python -m ml.benchmark`: **1,456 logins/s on one CPU core (5.2 million sessions/hour/core)**, median 0.68 ms, p99 1.3 ms.
 - **PIN brute-force lockout.** 5 wrong PINs lock the account for 5 minutes and raise a dashboard alert.
 - **Privacy.** The server never stores raw events: profiles keep only derived numbers (timings, angles, speeds), and the PIN is stored as a salted PBKDF2 hash. Next step: compute the features on-device so raw events never leave the phone.
 
@@ -105,6 +109,8 @@ API docs: http://127.0.0.1:8000/docs · Contract for the app & dashboard: [docs/
 ```bash
 python -m ml.evaluate        # rebuilds data/tradeoff.json (~1.5 min, 4 worker processes)
 python -m tests.test_flow    # end-to-end API tests
+python -m ml.ring_eval       # rental-ring detection: recall / precision on a fleet with rings
+python -m ml.benchmark       # engine throughput on one core -> data/benchmark.json
 ```
 
 > On Windows use `127.0.0.1` instead of `localhost` in scripts and proxies (`localhost` tries IPv6 first and adds ~2 s per request).

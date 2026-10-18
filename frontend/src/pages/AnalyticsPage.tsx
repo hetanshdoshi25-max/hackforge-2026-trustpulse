@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ScaleCard } from '../components/analytics/ScaleCard';
 import {
   ResponsiveContainer,
   LineChart,
@@ -154,6 +155,8 @@ export const AnalyticsPage: React.FC = () => {
           Default Engine Threshold: <strong className="text-cyan-400">{metrics.default_threshold}</strong>
         </div>
       </div>
+
+      <ScaleCard />
 
       {/* Threshold Slider Card */}
       <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-5">

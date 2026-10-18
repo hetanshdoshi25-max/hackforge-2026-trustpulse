@@ -25,6 +25,10 @@ class Store:
         self.rider_sessions: dict[str, list[str]] = {}
         self.alerts: list[dict] = []
         self.selfies: dict[str, str] = {}
+        # flagged sessions that looked like an unknown person, for rental-ring detection
+        self.sightings: dict[str, dict] = {}
+        # "Can you fool TrustPulse?": attempts to pass as the target rider
+        self.challenge = {"target": "DEMO1", "pin": None, "attempts": []}
         self.threshold = C.DEFAULT_THRESHOLD
         self.dirty = False
         self.load()
@@ -55,8 +59,10 @@ class Store:
             self.profiles[rider_id].name = name
         return self.profiles[rider_id]
 
-    def add_session(self, s):
+    def add_session(self, s, track=True):
         self.sessions[s["session_id"]] = s
+        if not track:  # challenge attempts: kept for lookup, never part of the rider's history
+            return
         sids = self.rider_sessions.setdefault(s["rider_id"], [])
         sids.append(s["session_id"])
         # Keep memory bounded on long simulator runs.
@@ -71,6 +77,7 @@ class Store:
             self.sessions.pop(sid, None)
             self.selfies.pop(sid, None)
         self.alerts = [a for a in self.alerts if a["rider_id"] != rider_id]
+        self.sightings = {k: v for k, v in self.sightings.items() if v["rider_id"] != rider_id}
         self.save()
 
 

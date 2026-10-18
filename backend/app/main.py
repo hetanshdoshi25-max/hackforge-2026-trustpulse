@@ -1,5 +1,7 @@
 """TrustPulse API. Run: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"""
 import asyncio
+import collections
+import copy
 import hashlib
 import hmac
 import json
@@ -12,8 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import config as C
 from . import recorder
+from .rings import detect_rings, is_sighting, within_person_scale
 from .engine import GROUP_LABELS, baseline, feature_label, process_batch, start_session, verify_identity
-from .schemas import ConfigIn, Events, Resolve, SessionStart, StepUp
+from .schemas import ChallengeConfigIn, ConfigIn, Events, Resolve, SessionStart, StepUp
 from .store import DATA_DIR, SAVE_INTERVAL, store
 
 
@@ -34,6 +37,11 @@ app = FastAPI(title="TrustPulse", description="Continuous rider identity engine"
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ESCALATED = {"SOFT_CHECK", "STEP_UP", "REVIEW"}
+# Live throughput: timestamps of recently scored event batches (last minute).
+SCORED = collections.deque(maxlen=100_000)
+SCORED_TOTAL = [0]
+MAX_SIGHTINGS = 5000
+_scale_cache = {"at": 0.0, "scale": None}
 
 
 # ---------------------------------------------------------------- websocket hub
@@ -111,6 +119,7 @@ def public(s):
         "timeline": s["timeline"],
         "has_selfie": s["session_id"] in store.selfies,
         "label": s.get("label"),  # only set by the simulator (ground truth, for the demo)
+        "challenger": s["ctx"].get("challenger"),
     }
 
 
@@ -164,21 +173,39 @@ async def check_pin(profile, pin):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "riders": len(store.profiles), "sessions": len(store.sessions)}
+    now = time.time()
+    while SCORED and SCORED[0] < now - 60:
+        SCORED.popleft()
+    return {"ok": True, "riders": len(store.profiles), "sessions": len(store.sessions),
+            "scored_total": SCORED_TOTAL[0], "scored_last_minute": len(SCORED)}
 
 
 @app.post("/session/start")
 async def session_start(body: SessionStart, request: Request):
-    profile = store.profile(body.rider_id, body.name)
-    if body.pin:
-        await check_pin(profile, body.pin)
+    challenge = bool(body.challenger)
+    if challenge:
+        # Challenge attempts never touch the real profile: wrong PINs don't count toward
+        # the lockout, and scoring runs on a throwaway copy (no learning, no drift).
+        real = store.profiles.get(body.rider_id)
+        if not real or not real.enrolled:
+            raise HTTPException(409, f"{body.rider_id} must be enrolled before the challenge")
+        if not body.pin or not real.pin_hash or not pin_ok(real.pin_hash, body.pin, real.rider_id):
+            raise HTTPException(401, "Wrong PIN")
+        profile = copy.deepcopy(real)
+    else:
+        profile = store.profile(body.rider_id, body.name)
+        if body.pin:
+            await check_pin(profile, body.pin)
     ctx = body.model_dump(exclude={"pin", "name"})
     ctx["ts"] = ctx["ts"] or time.time()
     ctx["ip"] = request.client.host if request.client else None
     s = start_session(profile, ctx)
     s["received_at"] = time.time()
-    store.add_session(s)
-    store.mark_dirty()
+    if challenge:
+        s["shadow_profile"] = profile
+    store.add_session(s, track=not challenge)
+    if not challenge:
+        store.mark_dirty()
     return public(s)
 
 
@@ -187,6 +214,8 @@ async def session_events(sid: str, body: Events, label: str | None = None):
     s = get_session(sid)
     if s["status"] in ("PENDING_REVIEW", "BLOCKED"):
         return public(s)  # frozen until a human decides
+    if s["ctx"].get("challenger"):
+        return await challenge_events(s, body.model_dump())
     profile = store.profiles[s["rider_id"]]
     before = s["action"]
     if label:
@@ -194,6 +223,14 @@ async def session_events(sid: str, body: Events, label: str | None = None):
     payload = body.model_dump()
     recorder.record(s, payload)
     process_batch(profile, s, payload, threshold=store.threshold, now=time.time())
+    SCORED.append(time.time())
+    SCORED_TOTAL[0] += 1
+    if is_sighting(s):
+        store.sightings[sid] = {"rider_id": s["rider_id"], "session_id": sid, "ts": s["ctx"]["ts"],
+                                "device_id": s["ctx"].get("device_id"), "city": s["ctx"].get("city"),
+                                "vectors": list(s["vectors"])}
+        if len(store.sightings) > MAX_SIGHTINGS:
+            store.sightings.pop(next(iter(store.sightings)))
     s["received_at"] = time.time()
     store.mark_dirty()
     out = public(s)
@@ -232,6 +269,7 @@ async def session_resolve(sid: str, body: Resolve):
     s = get_session(sid)
     if body.decision == "approve":
         verify_identity(store.profiles[s["rider_id"]], s)
+        store.sightings.pop(sid, None)  # it was the rider after all: not a sighting of anyone else
         store.mark_dirty()
         s["status"], s["action"] = "VERIFIED", "ALLOW"
         s["verdict"] = "Verified by reviewer"
@@ -345,6 +383,101 @@ async def set_config(body: ConfigIn):
     store.threshold = body.threshold
     await hub.send("config", {"threshold": store.threshold})
     return get_config()
+
+
+# ---------------------------------------------------------------- challenge mode
+
+async def challenge_events(s, payload):
+    """Score a challenge attempt on the throwaway profile copy: no alerts, sightings,
+    recordings or learning. Then update the leaderboard."""
+    process_batch(s["shadow_profile"], s, payload, threshold=store.threshold, now=time.time())
+    SCORED.append(time.time())
+    SCORED_TOTAL[0] += 1
+    s["received_at"] = time.time()
+    out = public(s)
+    b = s.get("behaviour_risk")
+    attempt = {
+        "challenger": s["ctx"]["challenger"], "session_id": s["session_id"], "at": time.time(),
+        "trust": out["trust"], "action": s["action"],
+        "behaviour_match": None if b is None else round(100 * (1 - b)),
+        "fooled": s["action"] == "ALLOW",
+    }
+    attempts = store.challenge["attempts"]
+    attempts[:] = [a for a in attempts if a["session_id"] != s["session_id"]] + [attempt]
+    await hub.send("challenge", {"attempt": attempt, "session": out})
+    return out
+
+
+@app.get("/challenge")
+def challenge_board():
+    """Leaderboard: best behaviour match per challenger (how close they got to the owner)."""
+    target = store.challenge["target"]
+    p = store.profiles.get(target)
+    people = {}
+    for a in store.challenge["attempts"]:
+        e = people.setdefault(a["challenger"], {"challenger": a["challenger"], "attempts": 0, "best_match": None,
+                                                "best_trust": 0, "fooled": False, "last_at": 0})
+        e["attempts"] += 1
+        if a["behaviour_match"] is not None:
+            e["best_match"] = max(e["best_match"] or 0, a["behaviour_match"])
+        e["best_trust"] = max(e["best_trust"], a["trust"])
+        e["fooled"] = e["fooled"] or a["fooled"]
+        e["last_at"] = max(e["last_at"], a["at"])
+    board = sorted(people.values(), key=lambda e: (-(e["best_match"] or 0), -e["best_trust"]))
+    attempts = store.challenge["attempts"]
+    return {
+        "target": target, "target_name": p.name if p else target, "target_enrolled": bool(p and p.enrolled),
+        "pin": store.challenge["pin"],  # shown on purpose: the challenge is to beat the owner's behaviour, not the PIN
+        "attempts": len(attempts), "fooled": sum(a["fooled"] for a in attempts),
+        "leaderboard": board, "latest": attempts[-1] if attempts else None,
+    }
+
+
+@app.post("/challenge/config")
+async def challenge_config(body: ChallengeConfigIn):
+    p = store.profiles.get(body.target)
+    if body.pin and (not p or not p.pin_hash or not pin_ok(p.pin_hash, body.pin, body.target)):
+        raise HTTPException(400, f"That PIN does not match {body.target}")
+    store.challenge.update(target=body.target, pin=body.pin)
+    await hub.send("challenge", {"config": True})
+    return challenge_board()
+
+
+@app.post("/challenge/reset")
+async def challenge_reset():
+    store.challenge["attempts"] = []
+    await hub.send("challenge", {"reset": True})
+    return challenge_board()
+
+
+@app.get("/rings")
+def rings():
+    """Rental rings: accounts whose flagged sessions show the SAME unknown person
+    (PIN-independent behaviour signature) or the same phone."""
+    now = time.time()
+    if _scale_cache["scale"] is None or now - _scale_cache["at"] > 30:
+        _scale_cache.update(at=now, scale=within_person_scale(store.profiles.values()))
+    found = detect_rings(list(store.sightings.values()), _scale_cache["scale"])
+    for r in found:
+        r["members"] = []
+        for rid in r["accounts"]:
+            p = store.profiles.get(rid)
+            own = [x for x in store.sightings.values() if x["rider_id"] == rid]
+            r["members"].append({
+                "rider_id": rid, "name": p.name if p else rid,
+                "sightings": len(own), "cities": sorted({x["city"] for x in own if x.get("city")}),
+            })
+    return {"rings": found, "sightings": len(store.sightings),
+            "accounts_flagged": len({x["rider_id"] for x in store.sightings.values()})}
+
+
+@app.get("/metrics/benchmark")
+def benchmark():
+    """Measured engine throughput (python -m ml.benchmark)."""
+    f = DATA_DIR / "benchmark.json"
+    if not f.exists():
+        raise HTTPException(404, "Run `python -m ml.benchmark` first")
+    return json.loads(f.read_text())
 
 
 _tradeoff_cache = {"mtime": None, "data": None}

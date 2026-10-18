@@ -18,7 +18,7 @@ import { LoadingState } from '../components/common/LoadingState';
 import { ErrorState } from '../components/common/ErrorState';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useTrustPulseSocket } from '../hooks/useTrustPulseSocket';
-import { Fingerprint3D, FingerprintLegend } from '../three/Fingerprint3D';
+import { AccountTimeMachine } from '../components/rider/AccountTimeMachine';
 import { formatDateTime, formatRelativeTime } from '../utils/formatting';
 import {
   User,
@@ -243,19 +243,8 @@ export const RiderDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 3D behavioural fingerprint of the latest login */}
-          {latestSession.signals && Object.keys(latestSession.signals).length > 0 && (
-            <div className="rounded-xl border border-slate-800 bg-[#000000] p-3">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wider text-slate-400">Behavioural fingerprint · latest login</span>
-                <Link to={`/stage?rider=${encodeURIComponent(latestSession.rider_id)}`} className="text-xs text-cyan-400 hover:text-cyan-300">
-                  Open on Demo Stage →
-                </Link>
-              </div>
-              <Fingerprint3D signals={latestSession.signals} action={latestSession.action} height={340} />
-              <FingerprintLegend className="justify-center" />
-            </div>
-          )}
+          {/* Account time machine: every session's fingerprint, scrub or play */}
+          {rider && <AccountTimeMachine history={rider.history} />}
 
           {/* Behavioral Signal Breakdown */}
           {latestSession.signals && Object.keys(latestSession.signals).length > 0 && (

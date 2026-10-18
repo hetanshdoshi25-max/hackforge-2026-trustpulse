@@ -112,7 +112,9 @@ def sample_payload(p, pin, rng, noise=1.0):
     return {"keystrokes": keys, "touches": touches, "motion": motion, "riding": riding}
 
 
-def generate_rider(idx, rng, days=30):
+def generate_rider(idx, rng, days=30, ring=None):
+    """ring: optional (ring_id, renter_persona). Applied AFTER all random draws, so a
+    rider's random stream (and the plain fleet) is identical with or without rings."""
     rid = f"R{idx:04d}"
     owner = make_persona(rng)
     pin = "".join(str(d) for d in rng.integers(0, 10, 4))
@@ -128,6 +130,13 @@ def generate_rider(idx, rng, days=30):
         renter = lookalike(owner, renter, mix=rng.uniform(0.4, 0.6))
     renter_new_device = takeover_day is not None and rng.random() < 0.3
     shared = takeover_day is not None and rng.random() < 0.4
+    renter_id = f"solo-{rid}" if takeover_day else None
+    renter_device = f"dev-{rid}-x"
+    if ring and takeover_day:
+        # one person renting several accounts: same habits everywhere, and if they bring
+        # their own phone it's the same phone on every account they rent
+        renter_id, renter = ring
+        renter_device = f"dev-{renter_id}"
     other_city = random.Random(idx + 999).choice([c for c in CITIES if c != home])
 
     sessions = []
@@ -142,7 +151,7 @@ def generate_rider(idx, rng, days=30):
                 p, label = renter, "takeover"
                 tag = "takeover_new" if renter_new_device else "takeover_same"
                 if renter_new_device:
-                    dev = f"dev-{rid}-x"
+                    dev = renter_device
             hour = (p["shift_start"] + int(rng.integers(0, 8))) % 24
             ts = START_TS + day * 86400 + hour * 3600 + int(rng.integers(0, 3600)) - 19800  # IST -> UTC
             lat, lon = CITIES[city]
@@ -152,12 +161,24 @@ def generate_rider(idx, rng, days=30):
             sessions.append({"ctx": ctx, "payload": sample_payload(p, pin, rng, noise), "label": label, "tag": tag})
     sessions.sort(key=lambda s: s["ctx"]["ts"])
     name = f"{random.Random(idx).choice(FIRST)} {random.Random(idx * 7).choice(LAST)}"
-    return {"rider_id": rid, "name": name, "pin": pin, "home": home, "sessions": sessions}
+    return {"rider_id": rid, "name": name, "pin": pin, "home": home, "sessions": sessions, "renter": renter_id}
 
 
-def generate_fleet(n_riders=500, days=30, seed=7):
+def generate_fleet(n_riders=500, days=30, seed=7, ring_size=0, ring_seed=99):
+    """ring_size >= 2 groups the rented accounts into rental rings: one renter persona
+    takes over ring_size different accounts (leftovers stay solo renters)."""
     rng = np.random.default_rng(seed)
-    return [generate_rider(i + 1, rng, days) for i in range(n_riders)]
+    if ring_size < 2:
+        return [generate_rider(i + 1, rng, days) for i in range(n_riders)]
+    plain = generate_fleet(n_riders, days, seed)
+    rented = [i for i, r in enumerate(plain) if r["renter"]]
+    ring_rng = np.random.default_rng(ring_seed)
+    assign = {}
+    for k in range(len(rented) // ring_size):
+        ring = (f"ring-{k + 1}", make_persona(ring_rng))
+        for i in rented[k * ring_size:(k + 1) * ring_size]:
+            assign[i] = ring
+    return [generate_rider(i + 1, rng, days, assign.get(i)) for i in range(n_riders)]
 
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+{
+ "sessions_scored": 8000,
+ "riders": 200,
+ "sessions_per_second_one_core": 1456,
+ "sessions_per_hour_one_core": 5242531,
+ "latency_ms": {
+  "median": 0.675,
+  "p95": 1.108,
+  "p99": 1.324
+ },
+ "cores_on_this_machine": 20,
+ "machine": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel \u00b7 Python 3.11.9",
+ "note": "Pure-Python engine, one core, all 4 signals, 40-sample adaptive baselines. HTTP/JSON overhead not included."
+}

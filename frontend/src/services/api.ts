@@ -9,6 +9,9 @@ import type {
   SessionStartPayload,
   StepUpPayload,
   TradeoffMetrics,
+  BenchmarkResult,
+  RingsResponse,
+  ChallengeBoard,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -53,7 +56,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   /** Health check */
-  async health(): Promise<{ ok: boolean; riders: number; sessions: number }> {
+  async health(): Promise<{ ok: boolean; riders: number; sessions: number; scored_total?: number; scored_last_minute?: number }> {
     return request('/health');
   },
 
@@ -150,6 +153,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ threshold }),
     });
+  },
+
+  /** "Can you fool TrustPulse?" leaderboard */
+  async getChallenge(): Promise<ChallengeBoard> {
+    return request<ChallengeBoard>('/challenge');
+  },
+
+  async setChallenge(target: string, pin: string | null): Promise<ChallengeBoard> {
+    return request<ChallengeBoard>('/challenge/config', { method: 'POST', body: JSON.stringify({ target, pin }) });
+  },
+
+  async resetChallenge(): Promise<ChallengeBoard> {
+    return request<ChallengeBoard>('/challenge/reset', { method: 'POST' });
+  },
+
+  /** Rental rings: one unknown person riding several accounts */
+  async getRings(): Promise<RingsResponse> {
+    return request<RingsResponse>('/rings');
+  },
+
+  /** Measured engine throughput (python -m ml.benchmark) */
+  async getBenchmark(): Promise<BenchmarkResult> {
+    return request<BenchmarkResult>('/metrics/benchmark');
   },
 
   /** Get evaluation trade-off curve & baseline metrics */

@@ -12,6 +12,7 @@ class SessionStart(BaseModel):
     lat: float | None = None
     lon: float | None = None
     ts: float | None = Field(None, description="Epoch seconds. Defaults to server time.")
+    challenger: str | None = Field(None, max_length=40, description="Challenge mode: who is trying to pass as this rider")
 
 
 class Key(BaseModel):
@@ -61,6 +62,11 @@ class StepUp(BaseModel):
 
 class Resolve(BaseModel):
     decision: str  # "approve" | "reject"
+
+
+class ChallengeConfigIn(BaseModel):
+    target: str = "DEMO1"
+    pin: str | None = Field(None, max_length=8)
 
 
 class ConfigIn(BaseModel):

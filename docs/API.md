@@ -142,6 +142,11 @@ Colour code suggestion: `ALLOW` green · `SOFT_CHECK` yellow · `STEP_UP` orange
 | GET | `/recordings/summary` | Real-data collection progress: `{ "people": { "P1": {"pin_logins": 12, "distinct_pins": 1} }, "same_pin_for_everyone": true }` |
 | POST | `/config` | `{ "threshold": 55 }` sets live strictness. **Lower = stricter.** |
 | GET | `/metrics/tradeoff` | Data for the Strict ↔ Open slider (below) |
+| GET | `/metrics/benchmark` | Measured engine throughput (`python -m ml.benchmark`) |
+| GET | `/rings` | Rental rings: `{ rings: [{ ring_id, accounts, members, evidence: [{a, b, behaviour_match, shared_devices}], ... }], sightings, accounts_flagged }` |
+| GET | `/challenge` | Challenge leaderboard: target, published PIN, attempts, fooled, leaderboard, latest |
+| POST | `/challenge/config` | `{ "target": "DEMO1", "pin": "2580" }` publish the PIN (must match the rider) |
+| POST | `/challenge/reset` | Clear the leaderboard |
 | WS | `/ws` | Live push. Messages: `{"type": "session" \| "alert" \| "config" \| "rider_reset", "data": {...}}` |
 
 Simplest dashboard pattern: on every WS message, re-fetch `/riders` and `/alerts` (debounced ~500 ms).

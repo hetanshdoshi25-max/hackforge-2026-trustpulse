@@ -90,6 +90,14 @@ SMOOTH_WINDOW = 3
 # context did (new phone/SIM/city), and the new context is learned.
 BEHAVIOUR_MATCH = 0.30
 
+# Rental rings: two accounts' averaged impostor signatures closer than this (in
+# within-person std units, noise-normalised) = the same unknown person.
+RING_LINK_DISTANCE = 1.1
+RING_MIN_FEATURES = 4
+# A flagged session only counts as a sighting of an unknown person if its OWN
+# behaviour risk is at least this (not escalated purely by drift history).
+SIGHTING_MIN_BEHAVIOUR = 0.6
+
 # Session risk smoothing between batches.
 SESSION_SMOOTHING = 0.3
 

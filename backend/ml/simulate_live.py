@@ -50,9 +50,11 @@ def main():
     args = ap.parse_args()
 
     # Bigger pool, then keep a few rented accounts in the demo set on purpose.
-    pool = generate_fleet(args.riders * 3, days=30, seed=args.seed)
-    rented = [r for r in pool if any(s["label"] == "takeover" for s in r["sessions"])]
-    clean = [r for r in pool if r not in rented]
+    # Renters come in rings of 3 (one person riding three accounts), so the rental-ring
+    # view has something to find. Rented accounts are taken ring by ring.
+    pool = generate_fleet(args.riders * 3, days=30, seed=args.seed, ring_size=3)
+    rented = sorted((r for r in pool if r["renter"]), key=lambda r: (not r["renter"].startswith("ring-"), r["renter"]))
+    clean = [r for r in pool if not r["renter"]]
     n_rented = min(len(rented), max(3, args.riders // 5))
     fleet = rented[:n_rented] + clean[: args.riders - n_rented]
     random.Random(args.seed).shuffle(fleet)

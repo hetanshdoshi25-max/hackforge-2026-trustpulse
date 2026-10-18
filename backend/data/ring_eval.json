@@ -1,0 +1,67 @@
+{
+ "riders": 500,
+ "ring_size": 3,
+ "true_rings": 16,
+ "sightings": 768,
+ "sweep": [
+  {
+   "link_distance": 0.8,
+   "rings_detected": 15,
+   "linkable_accounts": 48,
+   "recall_all_ring_accounts": 85.4,
+   "recall_of_linkable": 85.4,
+   "link_precision": 100.0,
+   "honest_accounts_in_rings": 0,
+   "solo_renters_in_rings": 0
+  },
+  {
+   "link_distance": 1.0,
+   "rings_detected": 16,
+   "linkable_accounts": 48,
+   "recall_all_ring_accounts": 97.9,
+   "recall_of_linkable": 97.9,
+   "link_precision": 100.0,
+   "honest_accounts_in_rings": 0,
+   "solo_renters_in_rings": 0
+  },
+  {
+   "link_distance": 1.1,
+   "rings_detected": 16,
+   "linkable_accounts": 48,
+   "recall_all_ring_accounts": 97.9,
+   "recall_of_linkable": 97.9,
+   "link_precision": 100.0,
+   "honest_accounts_in_rings": 0,
+   "solo_renters_in_rings": 0
+  },
+  {
+   "link_distance": 1.2,
+   "rings_detected": 16,
+   "linkable_accounts": 48,
+   "recall_all_ring_accounts": 97.9,
+   "recall_of_linkable": 97.9,
+   "link_precision": 100.0,
+   "honest_accounts_in_rings": 0,
+   "solo_renters_in_rings": 0
+  },
+  {
+   "link_distance": 1.5,
+   "rings_detected": 14,
+   "linkable_accounts": 48,
+   "recall_all_ring_accounts": 100.0,
+   "recall_of_linkable": 100.0,
+   "link_precision": 64.0,
+   "honest_accounts_in_rings": 0,
+   "solo_renters_in_rings": 0
+  }
+ ],
+ "device_only": {
+  "rings_detected": 7,
+  "linkable_accounts": 48,
+  "recall_all_ring_accounts": 31.2,
+  "recall_of_linkable": 31.2,
+  "link_precision": 100.0,
+  "honest_accounts_in_rings": 0,
+  "solo_renters_in_rings": 0
+ }
+}

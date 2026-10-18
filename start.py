@@ -146,9 +146,11 @@ def main():
         say("tp", f"  Dashboard    {base}/dashboard")
         say("tp", f"  Demo Stage   {base}/stage")
         say("tp", f"  Rider app    {base}/rider")
+        say("tp", f"  Challenge    {base}/challenge   (projector leaderboard)")
         ip = lan_ip()
         if args.phone and ip:
             say("tp", f"  On the phone {scheme}://{ip}:{args.web_port}/rider   (same WiFi; accept the certificate warning)")
+            say("tp", f"  Challengers  {scheme}://{ip}:{args.web_port}/play")
         say("tp", "Ctrl+C stops everything.")
         print()
 

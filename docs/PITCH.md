@@ -55,6 +55,12 @@ This slide is what separates you from the other teams. Don't skip collecting the
 
 **8. Live demo** (switch to phone + dashboard)
 
+**8b. Beyond one account: rental rings**
+One renter rides several verified accounts. We compare flagged sessions across accounts (PIN-independent behaviour + shared phones):
+**97.9% of ring accounts linked, 100% precision, 0 honest accounts in a ring.** Show the `/rings` 3D graph.
+
+**8c. Challenge** (optional, at the booth): "Here's Ramesh's PIN. Can you log in as him?" Leaderboard on `/challenge`.
+
 **9. Impact & next steps**
 - Platforms: safety and legal liability (unverified riders), with zero friction for the honest 97%
 - Riders: no lockouts over a new phone, so fewer drop-offs
@@ -112,13 +118,19 @@ Profiles store only derived numbers (timings, angles), never keystroke content o
 Each rider has 8–40 samples. Per-rider distance models are the proven approach in keystroke biometrics at that data size, run in milliseconds, and every decision is explainable ("gap after key 2 is 4σ off"). A global deep model needs labelled takeovers that platforms don't have.
 
 **"How does it scale to lakhs of riders?"**
-Scoring a login takes **~0.2 ms** in plain Python (measured: 40-sample baseline, all 4 signals), so one core handles thousands of logins per second. Per-rider state is a few KB. Stateless API workers plus Redis/Postgres for profiles scale horizontally.
+Measured (`python -m ml.benchmark`): **1,456 logins/second on one CPU core**, which is **5.2 million sessions per hour per core** (median 0.68 ms, p99 1.3 ms; pure Python, all 4 signals, 200 riders with adaptive 40-sample baselines). A 20-core laptop covers ~100 million sessions/hour. Per-rider state is a few KB. Stateless API workers plus Redis/Postgres for profiles scale horizontally.
 
 **"Why not just ask for a selfie every day?"**
 That's the strict gate: daily friction for 100% of riders, and a renter can still show the owner's photo or have the owner do the morning selfie. Continuous behaviour covers the *whole* shift.
 
 **"What does the platform actually do with an alert?"**
 A graded response: soft check (selfie at next pickup, no block) → step-up (live selfie now) → human review with reasons and the selfie. Ops sees *why*, not just a score.
+
+**"What about organised renting, one person on many accounts?"**
+That's the rental-ring view. Each flagged session is a sighting of an unknown person; we match sightings across accounts by behaviour that doesn't depend on the PIN, plus shared phones. 98% of ring accounts linked with 100% precision on our synthetic fleet, and no honest account ever pulled into a ring.
+
+**"Can anyone fool it if they know the PIN?"**
+Try it: the challenge page gives you the PIN. Attempts run against a copy of the profile, so the real rider is never affected.
 
 **"Business value?"**
 One incident involving an unverified rider costs far more in legal liability and brand damage than this system. And no false lockouts means fewer rider drop-offs.

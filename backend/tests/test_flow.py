@@ -187,6 +187,75 @@ def test_shared_from_day_one(seed=4):
     client.post(f"/riders/{rid}/reset")
 
 
+def test_rental_ring(seed=21):
+    """One renter rides two accounts (different owners, different PINs): linked into a ring.
+    A different renter on a third account must stay out of it."""
+    client = TestClient(app)
+    rng = np.random.default_rng(seed)
+    renter, other_renter = make_persona(rng), make_persona(rng)
+    accounts = {"TEST_RING_A": "1111", "TEST_RING_B": "7294", "TEST_RING_C": "5038"}
+    for rid in accounts:
+        client.post(f"/riders/{rid}/reset")
+    try:
+        for rid, pin in accounts.items():
+            owner = make_persona(rng)
+            ctx = {"rider_id": rid, "pin": pin, "device_id": f"{rid}-phone", "city": "Delhi"}
+            for _ in range(C.MIN_ENROLL + 2):
+                sid = client.post("/session/start", json=ctx).json()["session_id"]
+                client.post(f"/session/{sid}/events", json=sample_payload(owner, pin, rng))
+            who = other_renter if rid == "TEST_RING_C" else renter
+            for _ in range(6):
+                sid = client.post("/session/start", json=ctx).json()["session_id"]
+                client.post(f"/session/{sid}/events", json=sample_payload(who, pin, rng))
+        found = client.get("/rings").json()["rings"]
+        ring = next((r for r in found if "TEST_RING_A" in r["accounts"]), None)
+        print("rental ring    ", ring and ring["accounts"], "| evidence:", ring and ring["evidence"][0]["behaviour_match"], "% match")
+        assert ring and "TEST_RING_B" in ring["accounts"], found
+        assert "TEST_RING_C" not in ring["accounts"], ring
+    finally:
+        for rid in accounts:
+            client.post(f"/riders/{rid}/reset")
+
+
+def test_challenge_mode(seed=31):
+    """Challengers try to pass as the target. The real profile must be untouched:
+    no learning, no drift, no lockout from wrong PINs, nothing in the ops alert queue."""
+    client = TestClient(app)
+    rng = np.random.default_rng(seed)
+    owner, rid, pin = make_persona(rng), "TEST_CHALLENGE", "3141"
+    client.post(f"/riders/{rid}/reset")
+    client.post("/challenge/reset")
+    try:
+        ctx = {"rider_id": rid, "pin": pin, "device_id": "stage-phone", "city": "Mumbai"}
+        for _ in range(C.MIN_ENROLL + 2):
+            sid = client.post("/session/start", json=ctx).json()["session_id"]
+            client.post(f"/session/{sid}/events", json=sample_payload(owner, pin, rng))
+        before = store.profiles[rid].to_dict()
+        alerts_before = len(client.get("/alerts").json())
+
+        assert client.post("/challenge/config", json={"target": rid, "pin": "0000"}).status_code == 400
+        assert client.post("/challenge/config", json={"target": rid, "pin": pin}).json()["pin"] == pin
+
+        for who in ("Judge A", "Judge A", "Judge B"):
+            sid = client.post("/session/start", json={**ctx, "challenger": who}).json()["session_id"]
+            out = client.post(f"/session/{sid}/events", json=sample_payload(make_persona(rng), pin, rng)).json()
+            assert out["challenger"] == who
+        bad = client.post("/session/start", json={**ctx, "pin": "9999", "challenger": "Judge C"})
+        assert bad.status_code == 401
+
+        board = client.get("/challenge").json()
+        print("challenge      ", board["attempts"], "attempts,", board["fooled"], "fooled | leader:",
+              board["leaderboard"][0]["challenger"], board["leaderboard"][0]["best_match"], "% match")
+        assert board["attempts"] == 3 and len(board["leaderboard"]) == 2
+        assert store.profiles[rid].to_dict() == before, "challenge attempts must not change the real profile"
+        assert len(client.get("/alerts").json()) == alerts_before
+        assert len(client.get(f"/riders/{rid}").json()["history"]) == C.MIN_ENROLL + 2
+    finally:
+        client.post("/challenge/reset")
+        client.post("/challenge/config", json={"target": "DEMO1"})
+        client.post(f"/riders/{rid}/reset")
+
+
 def test_pin_lockout():
     client = TestClient(app)
     rid = "TEST_LOCK"
@@ -208,5 +277,7 @@ if __name__ == "__main__":
     test_replay_attack()
     test_mid_session_handoff()
     test_shared_from_day_one()
+    test_rental_ring()
+    test_challenge_mode()
     test_pin_lockout()
     print("\nALL CHECKS PASSED")
