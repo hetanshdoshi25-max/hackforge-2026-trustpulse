@@ -1,0 +1,13 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+frontend/dist
+.git
+.claude
+# runtime state and real biometric recordings never go into the image
+backend/data/profiles.json
+backend/data/profiles.tmp
+backend/data/recordings
+backend/data/real_eval.json
+backend/data/sample_fleet.json

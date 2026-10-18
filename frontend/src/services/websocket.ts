@@ -1,4 +1,5 @@
 import type { WebSocketMessage } from '../types/api';
+import { API_BASE_URL } from './api';
 
 export type SocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 type MessageCallback = (msg: WebSocketMessage) => void;
@@ -17,6 +18,8 @@ class TrustPulseSocket {
   private getWebSocketUrl(): string {
     const customUrl = import.meta.env.VITE_WS_URL;
     if (customUrl) return customUrl;
+    // Backend on another host (Vercel frontend + Railway API): same host as the API.
+    if (/^https?:\/\//.test(API_BASE_URL)) return `${API_BASE_URL.replace(/^http/, 'ws')}/ws`;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;

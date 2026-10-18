@@ -115,6 +115,25 @@ python -m ml.benchmark       # engine throughput on one core -> data/benchmark.j
 
 > On Windows use `127.0.0.1` instead of `localhost` in scripts and proxies (`localhost` tries IPv6 first and adds ~2 s per request).
 
+## Deploy: Vercel (frontend) + Railway (backend)
+
+**1. Backend on Railway**
+- New Project > Deploy from GitHub repo > this repo. In the service **Settings**:
+  - **Root Directory:** `backend`
+  - **Start Command** (if not picked up from `backend/railway.json`): `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+  - **Networking > Generate Domain** gives `https://<name>.up.railway.app`
+- **Keep enrolled profiles across restarts:** add a **Volume** mounted at `/data`, and the variable `TRUSTPULSE_PROFILES=/data/profiles.json`.
+- Check: `https://<name>.up.railway.app/health` returns `{"ok": true, ...}`.
+
+**2. Frontend on Vercel**
+- Add New > Project > this repo. **Root Directory:** `frontend` (Vite is detected; `frontend/vercel.json` adds the SPA rewrite).
+- **Environment variable:** `VITE_API_BASE_URL = https://<name>.up.railway.app` (the WebSocket URL is derived from it).
+- Deploy. Vite bakes the variable in at build time, so **redeploy Vercel if the Railway URL changes**.
+
+Both are HTTPS, so phone sensors and the camera work without certificate warnings, from any network.
+
+Alternative, one service only: the root `Dockerfile` builds the React app and serves it from the API container (`/` app, `/api` API, `/ws` live).
+
 ## Demo day
 
 **Before going on stage:**

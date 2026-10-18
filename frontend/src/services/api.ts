@@ -14,7 +14,9 @@ import type {
   ChallengeBoard,
 } from '../types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// '/api' in dev (Vite proxy); the backend's full URL in production (e.g. Railway).
+// A trailing slash would make every call "//session/...", so strip it.
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 class ApiError extends Error {
   status: number;
