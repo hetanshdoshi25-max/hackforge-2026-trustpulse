@@ -49,7 +49,15 @@ export const RiderAppPage: React.FC = () => {
 
   // Motion sensor collection
   const motionSamplesRef = useRef<MotionTelemetry[]>([]);
-  const [sensorStatus, setSensorStatus] = useState<'idle' | 'listening' | 'unsupported'>('idle');
+  // "listening" only means the API exists; this says whether motion data is actually arriving
+  const [motionLive, setMotionLive] = useState(false);
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const buf = motionSamplesRef.current;
+      setMotionLive(buf.length > 0 && performance.now() - buf[buf.length - 1].t < 2000);
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, []);
 
   // Session state
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
@@ -77,7 +85,6 @@ export const RiderAppPage: React.FC = () => {
     }
 
     if (window.DeviceMotionEvent) {
-      setSensorStatus('listening');
       motionListener = (e: DeviceMotionEvent) => {
         const acc = e.accelerationIncludingGravity;
         if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
@@ -94,8 +101,6 @@ export const RiderAppPage: React.FC = () => {
         if (buf.length > MOTION_BUFFER) buf.splice(0, buf.length - MOTION_BUFFER);
       };
       window.addEventListener('devicemotion', motionListener);
-    } else {
-      setSensorStatus('unsupported');
     }
 
     return () => {
@@ -118,10 +123,7 @@ export const RiderAppPage: React.FC = () => {
         requestPermission?: () => Promise<'granted' | 'denied'>;
       };
       if (typeof DeviceMotionEventAny.requestPermission === 'function') {
-        const permission = await DeviceMotionEventAny.requestPermission();
-        if (permission === 'granted') {
-          setSensorStatus('listening');
-        }
+        await DeviceMotionEventAny.requestPermission();
       }
       // iOS gates tilt (beta/gamma) separately from acceleration.
       const DeviceOrientationEventAny = window.DeviceOrientationEvent as unknown as {
@@ -222,9 +224,16 @@ export const RiderAppPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {sensorStatus === 'listening' && (
+          {motionLive ? (
             <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
               <Compass className="w-3 h-3" /> Sensors Active
+            </span>
+          ) : (
+            <span
+              title="No motion data: phone grip won't be scored"
+              className="text-[10px] text-yellow-300 flex items-center gap-1 bg-yellow-950/50 px-2 py-0.5 rounded border border-yellow-800"
+            >
+              <Compass className="w-3 h-3" /> No motion data
             </span>
           )}
           <a
@@ -257,7 +266,7 @@ export const RiderAppPage: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5" /> Hackathon Demo Controls
                 </span>
                 <div className="flex items-center gap-2">
-                  {sensorStatus !== 'listening' && (
+                  {!motionLive && (
                     <button
                       type="button"
                       onClick={requestIosSensors}
@@ -322,6 +331,14 @@ export const RiderAppPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {!motionLive && (
+              <div className="p-2.5 rounded-lg bg-yellow-950/40 border border-yellow-800 text-yellow-200 text-[11px] leading-relaxed">
+                {window.isSecureContext
+                  ? 'Phone motion sensors are not sending data. Tap "Enable Sensors" (iPhone) or check the browser allows motion sensors.'
+                  : 'This page is not on https://, so the phone blocks motion sensors and phone grip is not scored. Open the https:// address that python start.py --phone prints.'}
+              </div>
+            )}
 
             {/* Error message */}
             {loginError && (

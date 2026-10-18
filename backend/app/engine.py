@@ -95,16 +95,36 @@ def _floor(name):
     return C.ABS_FLOORS.get(name.rsplit("_", 1)[0], 1e-3)
 
 
+def _median(vals):
+    v = sorted(vals)
+    n = len(v)
+    return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+
+
 def group_stats(samples):
-    """Per-feature (mean, std) from a list of feature dicts, with std floors."""
+    """Per-feature (centre, spread) from a list of feature dicts, with spread floors.
+
+    Robust by default (config.ROBUST_BASELINE): one fumbled login during enrollment
+    (e.g. a 1.5 s pause mid-PIN) would otherwise inflate the std 2-3x and let almost
+    anyone fall "within the normal range"."""
     stats = {}
     for name in {k for s in samples for k in s}:
         vals = [s[name] for s in samples if name in s]
         if len(vals) < 3:
             continue
         n = len(vals)
-        mu = sum(vals) / n
-        sd = math.sqrt(sum((v - mu) ** 2 for v in vals) / (n - 1))
+        if C.ROBUST_BASELINE == 2 and n >= 6:
+            # trimmed: drop the single login farthest from the median, then mean/std
+            med = _median(vals)
+            kept = sorted(vals, key=lambda v: abs(v - med))[:-1]
+            mu = sum(kept) / len(kept)
+            sd = math.sqrt(sum((v - mu) ** 2 for v in kept) / (len(kept) - 1))
+        elif C.ROBUST_BASELINE == 1:
+            mu = _median(vals)
+            sd = 1.4826 * _median([abs(v - mu) for v in vals])
+        else:
+            mu = sum(vals) / n
+            sd = math.sqrt(sum((v - mu) ** 2 for v in vals) / (n - 1))
         sd = max(sd, C.REL_FLOOR * abs(mu), _floor(name))
         stats[name] = (mu, sd)
     return stats
@@ -327,9 +347,9 @@ def _verdict(b, c, drift_led=False, replay=False, handoff=False, escalated=False
         return "Repeated small mismatches across sessions: possible shared / rented account"
     if b is None:
         return "Not enough behavioural evidence yet"
-    if b < 0.35 and c >= 0.3:
+    if b < C.BEHAVIOUR_MATCH and c >= 0.3:
         return "Context changed, behaviour matches: same person"
-    if b < 0.35:
+    if b < C.BEHAVIOUR_MATCH:
         return "Behaviour matches the rider's baseline"
     if b >= 0.6 and c < 0.3:
         return "Same device & city, but different behaviour: possible account handoff"

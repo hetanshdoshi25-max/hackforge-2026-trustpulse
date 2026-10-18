@@ -44,7 +44,7 @@ keep working, and a different person behind the same account gets escalated.
 - **Replay / bot detection.** A recorded PIN entry played back matches a past login *too perfectly*. Humans never repeat timings to the millisecond, so it goes straight to review.
 - **Mid-session handoff.** The most common real pattern is that the owner types the PIN and then hands the phone over. Each swipe batch is scored on its own (averaged over the last 3 gestures to cancel noise), and an in-session CUSUM flags *"clean login, then a different person"*. Measured on synthetic shifts: caught within 5 swipes 21/60 → **32/60**, while false flags on 30-swipe honest shifts dropped 4/150 → **1/150**.
 - **Shared from day one.** When enrollment completes, the PIN logins are checked for two clusters (2-means). One person's logins form one cloud; two people taking turns form two. 0/500 honest enrollments flagged, 66% of two-stranger enrollments caught. Look-alike relatives mostly pass, and that's a known limit.
-- **Rental-ring detection.** Renting is a business: one renter often rides several accounts. Every flagged session is a sighting of an unknown person; sightings are compared ACROSS accounts with a PIN-independent behaviour signature (average key hold, thumb position on keys, finger size, grip, swipe style) and by shared phones. On a synthetic fleet with rings of 3 (`python -m ml.ring_eval`): **97.9% of ring accounts linked, 100% precision, 0 honest accounts in any ring** (shared phones alone: 31%).
+- **Rental-ring detection.** Renting is a business: one renter often rides several accounts. Every flagged session is a sighting of an unknown person; sightings are compared ACROSS accounts with a PIN-independent behaviour signature (average key hold, thumb position on keys, finger size, grip, swipe style) and by shared phones. On a synthetic fleet with rings of 3 (`python -m ml.ring_eval`): **100% of ring accounts linked, 100% precision, 0 honest accounts in any ring** (shared phones alone: 31%).
 - **"Can you fool TrustPulse?"** Judges get the rider's PIN and try to log in as them (`/play` on a phone, leaderboard at `/challenge`). Attempts are scored on a copy of the profile, so the real rider is never affected, and every attempt is real impostor data.
 - **Account time machine.** On a rider's page, play the account's history session by session and watch the fingerprint: weeks of the owner inside the shell, then the day someone else took over.
 - **Measured scale.** `python -m ml.benchmark`: **1,456 logins/s on one CPU core (5.2 million sessions/hour/core)**, median 0.68 ms, p99 1.3 ms.
@@ -62,7 +62,7 @@ renters on a new phone, **lookalike renters** (relatives/friends with similar ha
 | Open gate (verify once) | 0% | 0% | 0% | 0% | 0% |
 | Strict gate (re-verify every login) | 100% | 100% | 100% | 100% | 100% |
 | Context rules (re-verify on new device/city) | 0.56% | 28.0% | 37.8% | **5.7%** | 45.8% |
-| **TrustPulse** (threshold 70) | **0.19%** | **3.4%** (one selfie) | **82.8%** | **81.4%** | **93.8%** |
+| **TrustPulse** (threshold 70) | **0.24%** | **5.0%** (one selfie) | **85.1%** | **83.3%** | **97.9%** |
 
 26,000 scored sessions, 3,068 honest life-change sessions, 873 rented sessions across 48 rented accounts.
 A rented account is caught after a **median of 2 sessions**. The misses are mostly "lookalike" renters

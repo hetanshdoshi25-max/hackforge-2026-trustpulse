@@ -22,6 +22,12 @@ FUSION_POWER = 2.0
 ANOMALY_CENTER = 1.7
 ANOMALY_SLOPE = 3.0
 
+# Baseline centre/spread. 2 = trimmed (drop the single login farthest from the median,
+# then mean/std): one fumbled enrollment login no longer inflates the normal range.
+# Measured on real phone data: a challenger went 84% -> 39% match, owner logins stayed
+# 77-98%. Synthetic fleet: +3 pts rented sessions caught. 1 = median/MAD, 0 = mean/std.
+ROBUST_BASELINE = 2
+
 # Std-dev floors so a tiny/lucky enrollment doesn't make the baseline brittle.
 REL_FLOOR = 0.08
 ABS_FLOORS = {

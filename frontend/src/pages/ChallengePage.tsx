@@ -15,6 +15,7 @@ export const ChallengePage: React.FC = () => {
   const [board, setBoard] = useState<ChallengeBoard | null>(null);
   const [latest, setLatest] = useState<{ attempt: ChallengeAttempt; session: Session } | null>(null);
   const [pinInput, setPinInput] = useState('');
+  const [targetInput, setTargetInput] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const shownId = useRef<string | null>(null);
 
@@ -56,7 +57,7 @@ export const ChallengePage: React.FC = () => {
   const savePin = async () => {
     if (!board) return;
     try {
-      setBoard(await api.setChallenge(board.target, pinInput.trim() || null));
+      setBoard(await api.setChallenge(targetInput.trim() || board.target, pinInput.trim() || null));
       setMsg('PIN published to challengers');
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Could not set PIN');
@@ -144,7 +145,15 @@ export const ChallengePage: React.FC = () => {
 
       {/* presenter controls */}
       <div className="mx-auto mt-8 flex max-w-6xl flex-wrap items-center gap-3 border-t border-slate-900 pt-4 text-sm text-slate-500">
-        <span>Presenter: publish {board?.target ?? 'DEMO1'}'s PIN</span>
+        <span>Presenter: target rider</span>
+        <input
+          value={targetInput}
+          onChange={(e) => setTargetInput(e.target.value.slice(0, 40))}
+          placeholder={board?.target ?? 'DEMO1'}
+          className="w-32 rounded-lg border border-slate-700 bg-neutral-900 px-3 py-1.5 font-mono text-slate-100"
+          aria-label="Challenge target rider ID"
+        />
+        <span>and their PIN</span>
         <input
           value={pinInput}
           onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}

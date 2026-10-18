@@ -44,8 +44,8 @@ Plus: cross-session drift, poison-proof learning, replay/bot detection, PIN lock
 | | Honest riders ever stopped | Renters on the same phone caught | Rented accounts caught |
 |---|---|---|---|
 | Context rules | 28.0% | 5.7% | 45.8% |
-| **TrustPulse** | **3.4%** (one selfie) | **81.4%** | **93.8%** |
-Caught after a **median of 2 shifts**. Honest sessions stopped: **0.19%**.
+| **TrustPulse** | **5.0%** (one selfie) | **83.3%** | **97.9%** |
+Caught after a **median of 2 shifts**. Honest sessions stopped: **0.24%**.
 *Visual:* the Strict↔Open slider curve.
 
 **7. Results: real humans** (fill in from `python -m ml.real_eval`)
@@ -57,12 +57,12 @@ This slide is what separates you from the other teams. Don't skip collecting the
 
 **8b. Beyond one account: rental rings**
 One renter rides several verified accounts. We compare flagged sessions across accounts (PIN-independent behaviour + shared phones):
-**97.9% of ring accounts linked, 100% precision, 0 honest accounts in a ring.** Show the `/rings` 3D graph.
+**100% of ring accounts linked, 100% precision, 0 honest accounts in a ring.** Show the `/rings` 3D graph.
 
 **8c. Challenge** (optional, at the booth): "Here's Ramesh's PIN. Can you log in as him?" Leaderboard on `/challenge`.
 
 **9. Impact & next steps**
-- Platforms: safety and legal liability (unverified riders), with zero friction for the honest 97%
+- Platforms: safety and legal liability (unverified riders), with zero friction for 95% of honest riders (the rest see one selfie, never a block)
 - Riders: no lockouts over a new phone, so fewer drop-offs
 - Next: on-device feature extraction (privacy), real telemetry calibration, face match on step-up, multi-platform account-sharing graph
 
@@ -127,7 +127,7 @@ That's the strict gate: daily friction for 100% of riders, and a renter can stil
 A graded response: soft check (selfie at next pickup, no block) → step-up (live selfie now) → human review with reasons and the selfie. Ops sees *why*, not just a score.
 
 **"What about organised renting, one person on many accounts?"**
-That's the rental-ring view. Each flagged session is a sighting of an unknown person; we match sightings across accounts by behaviour that doesn't depend on the PIN, plus shared phones. 98% of ring accounts linked with 100% precision on our synthetic fleet, and no honest account ever pulled into a ring.
+That's the rental-ring view. Each flagged session is a sighting of an unknown person; we match sightings across accounts by behaviour that doesn't depend on the PIN, plus shared phones. 100% of ring accounts linked with 100% precision on our synthetic fleet, and no honest account ever pulled into a ring.
 
 **"Can anyone fool it if they know the PIN?"**
 Try it: the challenge page gives you the PIN. Attempts run against a copy of the profile, so the real rider is never affected.
