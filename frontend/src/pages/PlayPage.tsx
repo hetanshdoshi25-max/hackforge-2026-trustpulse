@@ -107,6 +107,10 @@ export const PlayPage: React.FC = () => {
               placeholder="e.g. Priya, Team Rocket"
               className="w-full rounded-xl border border-slate-700 bg-neutral-900 px-4 py-3 text-base text-slate-100 outline-none focus:border-cyan-500"
             />
+            <p className="text-xs text-slate-500">
+              Your PIN typing rhythm and phone grip are compared with the rider's for this attempt only, then
+              discarded. Only your name and score appear on the leaderboard.
+            </p>
             <button
               onClick={begin}
               disabled={!name.trim()}

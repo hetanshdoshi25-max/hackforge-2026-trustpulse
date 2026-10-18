@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import type { KeyTelemetry, MotionTelemetry, Session, SessionStartPayload } from '../types/api';
 import { PinPad } from '../components/rider-app/PinPad';
+import { ConsentScreen, hasConsent } from '../components/rider-app/ConsentScreen';
 import { StepUpCamera } from '../components/rider-app/StepUpCamera';
 import { DemoOrderScreen } from '../components/rider-app/DemoOrderScreen';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -61,6 +62,7 @@ export const RiderAppPage: React.FC = () => {
 
   // Session state
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [consented, setConsented] = useState(hasConsent);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -249,7 +251,10 @@ export const RiderAppPage: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="w-full max-w-sm mx-auto my-auto py-4">
-        {!currentSession ? (
+        {!consented ? (
+          /* ONE-TIME CONSENT, before any behavioural data is used */
+          <ConsentScreen onAccept={() => setConsented(true)} />
+        ) : !currentSession ? (
           /* LOGIN SCREEN */
           <div className="space-y-4">
             <div className="text-center space-y-1">
