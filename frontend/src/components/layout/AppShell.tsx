@@ -1,131 +1,151 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
-import { MobileNavigation } from './MobileNavigation';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { useTrustPulseSocket } from '../../hooks/useTrustPulseSocket';
 import { api } from '../../services/api';
+import { PulseStrip } from '../ui/PulseStrip';
+import { Wordmark } from '../ui/kit';
 
-const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/dashboard': {
-    title: 'Fleet Operations Dashboard',
-    subtitle: 'Real-time fleet behavioral identity monitoring',
-  },
-  '/fleet': {
-    title: '3D Fleet Spatial View',
-    subtitle: 'Tactical geographic inspection and cluster telemetry',
-  },
-  '/riders': {
-    title: 'Rider Directory',
-    subtitle: 'Enrollment progress, baselines, and historical profiles',
-  },
-  '/sessions': {
-    title: 'Session Telemetry Feed',
-    subtitle: 'Continuous behavioral verification stream',
-  },
-  '/alerts': {
-    title: 'Alerts & Review Queue',
-    subtitle: 'Step-up camera verifications and human resolution queue',
-  },
-  '/analytics': {
-    title: 'Threshold Trade-off Analytics',
-    subtitle: 'Synthetic fleet evaluation and false-lockout trade-off curve',
-  },
-  '/settings': {
-    title: 'Engine Configuration',
-    subtitle: 'Live sensitivity threshold and baseline parameters',
-  },
-};
+const NAV = [
+  { to: '/dashboard', label: 'Overview' },
+  { to: '/stage', label: 'Stage' },
+  { to: '/challenge', label: 'Challenge' },
+  { to: '/fleet', label: 'Fleet map' },
+  { to: '/riders', label: 'Riders' },
+  { to: '/sessions', label: 'Sessions' },
+  { to: '/alerts', label: 'Alerts' },
+  { to: '/rings', label: 'Rings' },
+  { to: '/analytics', label: 'Evaluation' },
+  { to: '/settings', label: 'Config' },
+];
 
 export const AppShell: React.FC = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [backendHealthy, setBackendHealthy] = useState<boolean | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [alertCount, setAlertCount] = useState<number>(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const [healthy, setHealthy] = useState<boolean | null>(null);
+  const [alertCount, setAlertCount] = useState(0);
+  const [perMinute, setPerMinute] = useState<number | null>(null);
+  const [menu, setMenu] = useState(false);
   const location = useLocation();
-  const currentPath = location.pathname;
 
-  // Find page title info, checking dynamic routes like /riders/:id
-  let pageInfo = PAGE_TITLES[currentPath];
-  if (!pageInfo && currentPath.startsWith('/riders/')) {
-    pageInfo = {
-      title: 'Rider Detail & History',
-      subtitle: 'Chronological trust timeline and behavioral breakdown',
-    };
-  }
-  if (!pageInfo) {
-    pageInfo = {
-      title: 'TrustPulse Console',
-      subtitle: 'Continuous Rider Identity Engine',
-    };
-  }
-
-  const checkHealthAndAlerts = useCallback(async () => {
-    setIsRefreshing(true);
+  const refresh = useCallback(async () => {
     try {
-      const healthRes = await api.health();
-      setBackendHealthy(healthRes.ok);
-      const alerts = await api.getAlerts(100);
-      // Count alerts that need attention (e.g. SELFIE_SUBMITTED, REVIEW, STEP_UP)
-      setAlertCount(alerts.length);
-      setLastUpdated(Date.now() / 1000);
+      const h = await api.health();
+      setHealthy(h.ok);
+      setPerMinute(h.scored_last_minute ?? null);
+      setAlertCount((await api.getAlerts(100)).length);
     } catch {
-      setBackendHealthy(false);
-    } finally {
-      setIsRefreshing(false);
+      setHealthy(false);
     }
   }, []);
 
-  const { status: socketStatus } = useTrustPulseSocket(
-    useCallback(() => {
-      checkHealthAndAlerts();
-    }, [checkHealthAndAlerts])
-  );
+  const { status } = useTrustPulseSocket(refresh);
 
   useEffect(() => {
-    checkHealthAndAlerts();
-    const interval = setInterval(checkHealthAndAlerts, 20000);
-    return () => clearInterval(interval);
-  }, [checkHealthAndAlerts]);
+    refresh();
+    const t = window.setInterval(refresh, 20000);
+    return () => window.clearInterval(t);
+  }, [refresh]);
+
+  useEffect(() => {
+    setMenu(false);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  const live = status === 'connected' && healthy !== false;
 
   return (
-    <div className="flex h-screen w-full bg-[#000000] text-slate-100 overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          alertCount={alertCount}
-        />
-      </div>
+    <div className="min-h-screen bg-ink text-paper">
+      <header className="sticky top-0 z-40 border-b border-line bg-ink/92 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-[1520px] items-center gap-6 px-5 md:px-10">
+          <Link to="/" aria-label="TrustPulse home" className="shrink-0">
+            <Wordmark size="sm" />
+          </Link>
 
-      {/* Mobile Drawer */}
-      <MobileNavigation
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        alertCount={alertCount}
-      />
+          <nav className="hidden flex-1 items-center gap-0 xl:flex" aria-label="Console">
+            {NAV.map((n, i) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                className={({ isActive }) =>
+                  `group relative flex items-baseline gap-1.5 whitespace-nowrap px-2 py-1.5 text-[13px] transition-colors ${
+                    isActive ? 'text-paper' : 'text-mute hover:text-paper'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="font-mono text-[9.5px] text-dim group-hover:text-mute">{String(i + 1).padStart(2, '0')}</span>
+                    {n.label}
+                    {n.to === '/alerts' && alertCount > 0 && (
+                      <span className="tnum font-mono text-[10px] text-review">{alertCount}</span>
+                    )}
+                    {isActive && <span className="absolute inset-x-2 -bottom-[11px] h-px bg-paper" />}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar
-          title={pageInfo.title}
-          subtitle={pageInfo.subtitle}
-          onMobileMenuToggle={() => setMobileMenuOpen(true)}
-          socketStatus={socketStatus}
-          backendHealthy={backendHealthy}
-          lastUpdated={lastUpdated}
-          onRefresh={checkHealthAndAlerts}
-          isRefreshing={isRefreshing}
-        />
+          <div className="ml-auto flex items-center gap-5">
+            <div className="hidden items-center gap-2 font-mono text-[11px] sm:flex" title={`socket: ${status}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${live ? 'bg-allow' : 'bg-dim'}`} />
+              <span className={live ? 'text-paper-2' : 'text-dim'}>{live ? 'LIVE' : healthy === false ? 'OFFLINE' : 'LINKING'}</span>
+              {perMinute != null && <span className="text-dim">· {perMinute}/min</span>}
+            </div>
+            <a
+              href="/rider"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden whitespace-nowrap border border-line-2 px-3 py-1.5 text-[12px] text-paper transition hover:border-paper md:inline-block"
+            >
+              Rider app ↗
+            </a>
+            <button className="text-paper xl:hidden" onClick={() => setMenu(true)} aria-label="Open menu">
+              <Menu className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+        <PulseStrip height={26} />
+      </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#000000]">
-          <Outlet context={{ refreshGlobal: checkHealthAndAlerts, alertCount }} />
-        </main>
-      </div>
+      {menu && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-ink px-6 py-5 xl:hidden">
+          <div className="flex items-center justify-between">
+            <Wordmark size="sm" />
+            <button onClick={() => setMenu(false)} aria-label="Close menu" className="text-paper">
+              <X className="h-6 w-6" strokeWidth={1.5} />
+            </button>
+          </div>
+          <nav className="mt-10 flex-1 overflow-y-auto">
+            {NAV.map((n, i) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                className={({ isActive }) =>
+                  `flex items-baseline gap-4 border-b border-line py-3 font-serif text-[34px] leading-none ${isActive ? 'text-paper' : 'text-mute'}`
+                }
+              >
+                <span className="w-7 font-mono text-[11px] text-dim">{String(i + 1).padStart(2, '0')}</span>
+                {n.label}
+                {n.to === '/alerts' && alertCount > 0 && <span className="font-mono text-sm text-review">{alertCount}</span>}
+              </NavLink>
+            ))}
+          </nav>
+          <a href="/rider" className="mt-6 border border-line-2 py-3 text-center text-sm text-paper">
+            Open rider app ↗
+          </a>
+        </div>
+      )}
+
+      <main className="mx-auto max-w-[1520px] px-5 pb-24 pt-10 md:px-10">
+        <Outlet context={{ refreshGlobal: refresh, alertCount }} />
+      </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-[1520px] flex-wrap items-center justify-between gap-2 px-5 py-5 font-mono text-[11px] text-dim md:px-10">
+          <span>TrustPulse · continuous rider identity</span>
+          <span>HackForge 2026 · Team Braniacs</span>
+        </div>
+      </footer>
     </div>
   );
 };

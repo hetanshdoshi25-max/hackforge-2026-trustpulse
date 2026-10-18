@@ -1,60 +1,52 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ScaleCard } from '../components/analytics/ScaleCard';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  Legend,
-} from 'recharts';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../services/api';
 import type { AppConfig, TradeoffCurvePoint, TradeoffMetrics } from '../types/api';
-import { LoadingState } from '../components/common/LoadingState';
-import { ErrorState } from '../components/common/ErrorState';
+import { ScaleCard } from '../components/analytics/ScaleCard';
+import { Btn, ErrorBlock, Label, Loading, PageHead, Stat } from '../components/ui/kit';
 import { formatPercent } from '../utils/formatting';
-import {
-  Sliders,
-  CheckCircle,
-  FlaskConical,
-  BarChart3,
-  TrendingUp,
-  Columns,
-  Sparkles,
-} from 'lucide-react';
 
 const POLICY_ROWS = [
-  { key: 'open_gate', label: 'Open gate (verify once)', ours: false },
-  { key: 'strict_gate', label: 'Strict gate (verify every login)', ours: false },
-  { key: 'context_rules', label: 'Context rules (new device/city)', ours: false },
-  { key: 'trustpulse', label: 'TrustPulse', ours: true },
+  { key: 'open_gate', label: 'Open gate', note: 'verify once at signup', ours: false },
+  { key: 'strict_gate', label: 'Strict gate', note: 'verify every login', ours: false },
+  { key: 'context_rules', label: 'Context rules', note: 'flag new phone or city', ours: false },
+  { key: 'trustpulse', label: 'TrustPulse', note: 'behaviour vs own baseline', ours: true },
 ] as const;
+
+const C = {
+  caught: '#34d399',
+  same: '#edebe6',
+  stopped: '#f97316',
+  honest: '#8a877f',
+  rented: '#e11d48',
+  grid: '#1d1d1b',
+  axis: '#3a3936',
+  tick: { fill: '#8a877f', fontSize: 10, fontFamily: 'Geist Mono' },
+};
+
+const Key: React.FC<{ color: string; dashed?: boolean; children: React.ReactNode }> = ({ color, dashed, children }) => (
+  <span className="flex items-center gap-2">
+    <span className="inline-block w-5 border-t-2" style={{ borderColor: color, borderStyle: dashed ? 'dashed' : 'solid' }} />
+    {children}
+  </span>
+);
 
 export const AnalyticsPage: React.FC = () => {
   const [metrics, setMetrics] = useState<TradeoffMetrics | null>(null);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Local selected slider threshold for preview (20 - 95, step 5)
-  const [selectedThreshold, setSelectedThreshold] = useState<number>(70);
+  const [selectedThreshold, setSelectedThreshold] = useState(70);
   const [isApplying, setIsApplying] = useState(false);
   const [applySuccess, setApplySuccess] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const [tradeoffData, configData] = await Promise.all([
-        api.getTradeoffMetrics(),
-        api.getConfig(),
-      ]);
-      setMetrics(tradeoffData);
-      setConfig(configData);
-      setSelectedThreshold(configData.threshold);
+      const [t, c] = await Promise.all([api.getTradeoffMetrics(), api.getConfig()]);
+      setMetrics(t);
+      setConfig(c);
+      setSelectedThreshold(c.threshold);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load tradeoff analytics');
     } finally {
@@ -66,128 +58,125 @@ export const AnalyticsPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Selected curve point based on local slider
-  const selectedPoint: TradeoffCurvePoint | undefined = useMemo(() => {
-    if (!metrics || !metrics.curve) return undefined;
-    return (
-      metrics.curve.find((c) => c.threshold === selectedThreshold) ||
-      metrics.curve[Math.floor(metrics.curve.length / 2)]
-    );
+  const point: TradeoffCurvePoint | undefined = useMemo(() => {
+    if (!metrics?.curve) return undefined;
+    return metrics.curve.find((c) => c.threshold === selectedThreshold) || metrics.curve[Math.floor(metrics.curve.length / 2)];
   }, [metrics, selectedThreshold]);
 
-  const handleApplyThreshold = async () => {
+  const apply = async () => {
     setIsApplying(true);
     setApplySuccess(false);
     try {
-      const updated = await api.setConfig(selectedThreshold);
-      setConfig(updated);
+      setConfig(await api.setConfig(selectedThreshold));
       setApplySuccess(true);
       setTimeout(() => setApplySuccess(false), 3000);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to update threshold');
+      window.alert(err instanceof Error ? err.message : 'Failed to update threshold');
     } finally {
       setIsApplying(false);
     }
   };
 
-  // Prepare Histogram Data for Recharts
-  const histogramData = useMemo(() => {
-    if (!metrics || !metrics.risk_histogram) return [];
+  const histogram = useMemo(() => {
+    if (!metrics?.risk_histogram) return [];
     const { genuine, takeover, bin_size } = metrics.risk_histogram;
-    const len = Math.min(genuine.length, takeover.length);
-    const gTotal = genuine.reduce((a, b) => a + b, 0) || 1;
-    const tTotal = takeover.reduce((a, b) => a + b, 0) || 1;
-    const bins = [];
-    for (let i = 0; i < len; i++) {
-      const start = i * bin_size;
-      const end = (i + 1) * bin_size;
-      bins.push({
-        range: `${start}-${end}%`,
-        genuine: genuine[i] || 0,
-        takeover: takeover[i] || 0,
-        genuinePct: Number((((genuine[i] || 0) / gTotal) * 100).toFixed(1)),
-        takeoverPct: Number((((takeover[i] || 0) / tTotal) * 100).toFixed(1)),
-      });
-    }
-    return bins;
+    const g = genuine.reduce((a, b) => a + b, 0) || 1;
+    const t = takeover.reduce((a, b) => a + b, 0) || 1;
+    return Array.from({ length: Math.min(genuine.length, takeover.length) }, (_, i) => ({
+      range: `${i * bin_size}`,
+      label: `${i * bin_size}-${(i + 1) * bin_size}`,
+      genuine: genuine[i] || 0,
+      takeover: takeover[i] || 0,
+      genuinePct: Number((((genuine[i] || 0) / g) * 100).toFixed(1)),
+      takeoverPct: Number((((takeover[i] || 0) / t) * 100).toFixed(1)),
+    }));
   }, [metrics]);
 
-  if (isLoading) {
-    return <LoadingState message="Loading synthetic fleet evaluation & tradeoff models..." />;
-  }
+  if (isLoading) return <Loading message="Loading the evaluation" />;
+  if (error || !metrics) return <ErrorBlock title="Evaluation unavailable" message={error || 'Trade-off data could not be retrieved.'} onRetry={fetchData} />;
 
-  if (error || !metrics) {
-    return (
-      <ErrorState
-        title="Analytics Data Unavailable"
-        message={error || 'Tradeoff evaluation data could not be retrieved.'}
-        onRetry={fetchData}
-      />
-    );
-  }
-
-  const isCurrentApplied = config?.threshold === selectedThreshold;
+  const applied = config?.threshold === selectedThreshold;
+  const f = metrics.fleet;
 
   return (
-    <div className="space-y-6">
-      {/* Synthetic Fleet Header Banner */}
-      <div className="p-4 rounded-xl bg-violet-950/20 border border-violet-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-violet-900/40 border border-violet-700/60 text-violet-400 shrink-0 mt-0.5">
-            <FlaskConical className="w-5 h-5" />
-          </div>
+    <div className="space-y-14">
+      <PageHead
+        no="09"
+        kicker="Offline evaluation · synthetic fleet"
+        title={
+          <>
+            The trade-off, <em>measured.</em>
+          </>
+        }
+        lede={`${f.riders} riders, ${f.scored_sessions.toLocaleString()} scored sessions, ${f.life_change_sessions.toLocaleString()} of them honest life changes (new phone, new city), ${f.takeover_sessions.toLocaleString()} rented sessions on ${f.takeover_accounts} rented accounts.`}
+      />
+
+      {/* the comparison that matters */}
+      <section>
+        <Label>Four ways to guard an account</Label>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[920px] border-t border-line">
+            <thead className="border-b border-line">
+              <tr className="text-left">
+                <th className="label py-3 pr-4 font-normal">Policy</th>
+                <th className="label py-3 pr-4 font-normal">Honest sessions stopped</th>
+                <th className="label py-3 pr-4 font-normal">Honest riders ever stopped</th>
+                <th className="label py-3 pr-4 font-normal">Rented sessions caught</th>
+                <th className="label py-3 pr-4 font-normal">On the same phone</th>
+                <th className="label py-3 pr-4 font-normal">Rented accounts caught</th>
+                <th className="label py-3 font-normal">Shifts to catch</th>
+              </tr>
+            </thead>
+            <tbody>
+              {POLICY_ROWS.map(({ key, label, note, ours }) => {
+                const b = metrics.baselines[key];
+                const pct = (v: number) => `${Number(v.toFixed(2))}%`;
+                const shifts = b.median_sessions_to_catch;
+                const cell = `tnum py-4 pr-4 font-mono ${ours ? 'text-[17px] text-ink' : 'text-[14px] text-paper-2'}`;
+                return (
+                  <tr key={key} className={ours ? 'bg-paper' : 'border-b border-line'}>
+                    <td className="py-4 pl-3 pr-4">
+                      <div className={ours ? 'font-serif text-[26px] italic leading-none text-ink' : 'font-serif text-[22px] leading-none text-paper'}>{label}</div>
+                      <div className={`mt-1 font-mono text-[10.5px] ${ours ? 'text-ink/60' : 'text-dim'}`}>
+                        {note}
+                        {ours ? ` · threshold ${metrics.default_threshold}` : ''}
+                      </div>
+                    </td>
+                    <td className={cell}>{pct(b.false_lockout)}</td>
+                    <td className={cell}>{pct(b.honest_riders_ever_stopped)}</td>
+                    <td className={cell}>{pct(b.takeover_caught)}</td>
+                    <td className={cell}>{pct(b.takeover_caught_same_device)}</td>
+                    <td className={cell}>{pct(b.accounts_caught)}</td>
+                    <td className={cell}>{shifts == null ? '-' : `${shifts}`}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 font-mono text-[11px] text-dim">
+          Context rules catch some renters only because renters often use their own phone; on the owner's phone they see nothing. Behaviour does.
+        </p>
+      </section>
+
+      {/* threshold explorer */}
+      <section className="border-t border-line pt-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold font-mono tracking-wider text-slate-100">
-                SYNTHETIC FLEET EVALUATION BENCHMARK
-              </h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-mono border border-violet-500/40">
-                Offline Evaluation
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 font-mono mt-1">
-              Evaluated across {metrics.fleet.riders} riders, {metrics.fleet.scored_sessions.toLocaleString()} scored sessions, {metrics.fleet.takeover_sessions} simulated rented sessions, and {metrics.fleet.takeover_accounts} rented accounts.
-            </p>
+            <Label>Strictness · move it and watch the cost</Label>
+            <h2 className="mt-1.5 font-serif text-[30px] leading-none">
+              Threshold <span className="tnum font-mono text-[34px]">{selectedThreshold}</span>
+            </h2>
+          </div>
+          <div className="flex items-center gap-4">
+            {applySuccess && <span className="font-mono text-[11.5px] text-allow">applied to the live engine</span>}
+            <span className="font-mono text-[11px] text-mute">live: {config?.threshold}</span>
+            <Btn variant={applied ? 'line' : 'solid'} onClick={apply} disabled={isApplying || applied}>
+              {applied ? 'Applied' : `Apply ${selectedThreshold}`}
+            </Btn>
           </div>
         </div>
-
-        <div className="text-xs font-mono text-slate-400 bg-neutral-900/80 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
-          Default Engine Threshold: <strong className="text-cyan-400">{metrics.default_threshold}</strong>
-        </div>
-      </div>
-
-      <ScaleCard />
-
-      {/* Threshold Slider Card */}
-      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1e2c47]">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-mono font-bold text-sm text-slate-100">
-              Live Engine Strictness Slider: Strict ↔ Open Trade-off
-            </h3>
-          </div>
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <span className="text-slate-400">
-              Active in Backend: <strong className="text-emerald-400">{config?.threshold}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* Range Input with Strict <-> Open markers */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-rose-400 font-bold flex items-center gap-1">
-              ◀ STRICT (High Security / Higher Interruption)
-            </span>
-            <span className="text-slate-100 font-mono font-extrabold text-base px-3 py-1 rounded bg-neutral-900 border border-slate-700">
-              Selected: {selectedThreshold}
-            </span>
-            <span className="text-emerald-400 font-bold flex items-center gap-1">
-              OPEN (Frictionless / Lower Catch Rate) ▶
-            </span>
-          </div>
-
+        <div className="mt-6">
           <input
             type="range"
             min="20"
@@ -195,277 +184,105 @@ export const AnalyticsPage: React.FC = () => {
             step="5"
             value={selectedThreshold}
             onChange={(e) => setSelectedThreshold(Number(e.target.value))}
-            className="w-full h-2.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+            className="hair"
+            aria-label="Threshold"
           />
-
-          <div className="flex justify-between text-[10px] font-mono text-slate-400">
-            <span>20</span>
-            <span>30</span>
-            <span>40</span>
-            <span>50</span>
-            <span>60</span>
-            <span>70 (Default)</span>
-            <span>80</span>
-            <span>90</span>
-            <span>95</span>
+          <div className="mt-1 flex justify-between font-mono text-[10.5px] text-dim">
+            <span>20 · strict, more selfies</span>
+            <span>default {metrics.default_threshold}</span>
+            <span>95 · open, fewer catches</span>
           </div>
         </div>
-
-        {/* Preview of Tradeoff Metrics at Selected Threshold */}
-        {selectedPoint && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
-              <span className="text-slate-400 text-[10px] block">Honest Sessions Stopped</span>
-              <span className="text-lg font-bold text-amber-400">
-                {formatPercent(selectedPoint.false_lockout)}
-              </span>
-            </div>
-
-            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
-              <span className="text-slate-400 text-[10px] block">Honest Riders Ever Stopped</span>
-              <span className="text-lg font-bold text-amber-400">
-                {formatPercent(selectedPoint.honest_riders_ever_stopped)}
-              </span>
-            </div>
-
-            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
-              <span className="text-slate-400 text-[10px] block">Rented Sessions Caught</span>
-              <span className="text-lg font-bold text-emerald-400">
-                {formatPercent(selectedPoint.takeover_caught)}
-              </span>
-            </div>
-
-            <div className="p-3 rounded-lg bg-neutral-900 border border-slate-800 text-xs font-mono">
-              <span className="text-slate-400 text-[10px] block">↳ Caught on Same Device</span>
-              <span className="text-lg font-bold text-cyan-400">
-                {formatPercent(selectedPoint.takeover_caught_same_device)}
-              </span>
-            </div>
+        {point && (
+          <div className="mt-8 grid grid-cols-2 gap-y-8 md:grid-cols-4 md:divide-x md:divide-line">
+            <Stat className="md:pr-6" label="Honest sessions stopped" value={formatPercent(point.false_lockout, 2)} color={C.stopped} />
+            <Stat className="md:px-6" label="Honest riders ever stopped" value={formatPercent(point.honest_riders_ever_stopped)} color={C.stopped} />
+            <Stat className="md:px-6" label="Rented sessions caught" value={formatPercent(point.takeover_caught)} color={C.caught} />
+            <Stat className="md:pl-6" label="Caught on the same phone" value={formatPercent(point.takeover_caught_same_device)} />
           </div>
         )}
+      </section>
 
-        {/* Apply Button */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1e2c47]">
-          {applySuccess && (
-            <span className="text-xs font-mono text-emerald-400 flex items-center gap-1 animate-fade-in">
-              <CheckCircle className="w-4 h-4" /> Live backend threshold applied!
-            </span>
-          )}
-
-          <button
-            onClick={handleApplyThreshold}
-            disabled={isApplying || isCurrentApplied}
-            className={`px-4 py-2 text-xs font-mono font-medium rounded-lg transition flex items-center gap-2 ${
-              isCurrentApplied
-                ? 'bg-neutral-800 text-slate-500 border border-slate-700 cursor-not-allowed'
-                : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-950'
-            }`}
-          >
-            {isApplying && (
-              <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            )}
-            {isCurrentApplied ? 'Applied to Backend' : `Apply Threshold (${selectedThreshold})`}
-          </button>
-        </div>
-      </div>
-
-      {/* Trade-off Curve Chart */}
-      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-mono font-bold text-sm text-slate-100">
-              False-Lockout vs. Takeover-Detection Trade-off Curve
-            </h3>
+      <div className="grid grid-cols-1 gap-12 xl:grid-cols-2">
+        <section className="border-t border-line pt-6">
+          <Label>Trade-off curve</Label>
+          <h2 className="mt-1.5 font-serif text-[26px] leading-none">Catch rate against friction</h2>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[10.5px] text-paper-2">
+            <Key color={C.caught}>rented caught</Key>
+            <Key color={C.same} dashed>caught on same phone</Key>
+            <Key color={C.stopped}>honest sessions stopped</Key>
           </div>
-          <span className="text-xs font-mono text-slate-400">
-            X-axis: Threshold · Y-axis: Percentage (%)
-          </span>
-        </div>
+          <div className="mt-4 h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={metrics.curve} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke={C.grid} vertical={false} />
+                <XAxis dataKey="threshold" stroke={C.axis} tick={C.tick} tickLine={false} />
+                <YAxis domain={[0, 100]} stroke={C.axis} tick={C.tick} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                <ReferenceLine x={selectedThreshold} stroke="#edebe6" strokeDasharray="2 3" />
+                <Tooltip
+                  cursor={{ stroke: C.axis }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload as TradeoffCurvePoint;
+                    return (
+                      <div className="border border-line-2 bg-ink-2 px-3 py-2 font-mono text-[11px] leading-relaxed">
+                        <div className="text-paper">threshold {d.threshold}</div>
+                        <div style={{ color: C.caught }}>caught {d.takeover_caught}%</div>
+                        <div className="text-paper-2">same phone {d.takeover_caught_same_device}%</div>
+                        <div style={{ color: C.stopped }}>honest stopped {d.false_lockout}%</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Line type="monotone" dataKey="takeover_caught" stroke={C.caught} strokeWidth={2} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="takeover_caught_same_device" stroke={C.same} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="false_lockout" stroke={C.stopped} strokeWidth={2} dot={false} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
-        <div className="h-72 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metrics.curve} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2c47" opacity={0.6} />
-              <XAxis
-                dataKey="threshold"
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-              />
-              <YAxis
-                domain={[0, 100]}
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                tickFormatter={(v) => `${v}%`}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
+        <section className="border-t border-line pt-6">
+          <Label>Separation</Label>
+          <h2 className="mt-1.5 font-serif text-[26px] leading-none">Where honest and rented sessions land</h2>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[10.5px] text-paper-2">
+            <Key color={C.honest}>honest (% of honest)</Key>
+            <Key color={C.rented}>rented (% of rented)</Key>
+            <span className="text-dim">x = risk score</span>
+          </div>
+          <div className="mt-4 h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={histogram} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} barGap={1}>
+                <CartesianGrid stroke={C.grid} vertical={false} />
+                <XAxis dataKey="range" stroke={C.axis} tick={C.tick} tickLine={false} />
+                <YAxis stroke={C.axis} tick={C.tick} tickLine={false} tickFormatter={(v: number) => `${v}%`} />
+                <Tooltip
+                  cursor={{ fill: '#ffffff08' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-neutral-900 border border-slate-700 p-3 rounded-lg text-xs font-mono text-slate-200 shadow-xl space-y-1">
-                        <div className="font-bold text-cyan-400 mb-1">
-                          Threshold: {d.threshold}
+                      <div className="border border-line-2 bg-ink-2 px-3 py-2 font-mono text-[11px] leading-relaxed">
+                        <div className="text-paper">risk {d.label}</div>
+                        <div className="text-paper-2">
+                          honest {d.genuinePct}% ({d.genuine.toLocaleString()})
                         </div>
-                        <div className="text-emerald-400">
-                          Rented Caught: {d.takeover_caught}%
-                        </div>
-                        <div className="text-cyan-300">
-                          ↳ Same Device Caught: {d.takeover_caught_same_device}%
-                        </div>
-                        <div className="text-amber-400">
-                          Honest Sessions Stopped: {d.false_lockout}%
-                        </div>
-                        <div className="text-slate-400">
-                          Honest Riders Stopped: {d.honest_riders_ever_stopped}%
+                        <div style={{ color: C.rented }}>
+                          rented {d.takeoverPct}% ({d.takeover.toLocaleString()})
                         </div>
                       </div>
                     );
-                  }
-                  return null;
-                }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 11, fontFamily: 'monospace', paddingTop: 10 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="takeover_caught"
-                stroke="#10b981"
-                strokeWidth={2.5}
-                name="Rented Sessions Caught (%)"
-                dot={{ r: 3 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="takeover_caught_same_device"
-                stroke="#06b6d4"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                name="Caught on Same Phone (%)"
-                dot={{ r: 2 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="false_lockout"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                name="Honest Sessions Stopped (%)"
-                dot={{ r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Risk Score Separation Histogram */}
-      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-mono font-bold text-sm text-slate-100">
-              Risk Score Distribution Histogram (Separation Power)
-            </h3>
+                  }}
+                />
+                <Bar dataKey="genuinePct" fill={C.honest} isAnimationActive={false} />
+                <Bar dataKey="takeoverPct" fill={C.rented} isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <span className="text-xs font-mono text-slate-400">
-            Share of each group per {metrics.risk_histogram.bin_size}-point risk bin
-          </span>
-        </div>
-
-        <div className="h-72 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={histogramData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2c47" opacity={0.6} />
-              <XAxis
-                dataKey="range"
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
-              />
-              <YAxis
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
-                tickFormatter={(v: number) => `${v}%`}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const d = payload[0].payload;
-                    return (
-                      <div className="bg-neutral-900 border border-slate-700 p-2.5 rounded text-xs font-mono text-slate-200">
-                        <div className="text-slate-400 mb-1">Risk Range: {d.range}</div>
-                        <div>Honest sessions: {d.genuinePct}% ({d.genuine.toLocaleString()})</div>
-                        <div>Rented sessions: {d.takeoverPct}% ({d.takeover.toLocaleString()})</div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 11, fontFamily: 'monospace', paddingTop: 10 }}
-              />
-              <Bar dataKey="genuinePct" fill="#34d399" name="Honest sessions (% of honest)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="takeoverPct" fill="#e11d48" name="Rented sessions (% of rented)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        </section>
       </div>
 
-      {/* Baseline Comparison Matrix */}
-      <div className="p-5 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#1e2c47]">
-          <div className="flex items-center gap-2">
-            <Columns className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-mono font-bold text-sm text-slate-100">
-              Policy Baseline Comparison
-            </h3>
-          </div>
-          <span className="text-xs font-mono text-cyan-400 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" /> Behavioral Telemetry Advantage
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-[#0f0f0f] border-b border-[#1e2c47] text-slate-400 uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="py-3 px-4">Verification Policy</th>
-                <th className="py-3 px-4">Honest Sessions Stopped</th>
-                <th className="py-3 px-4">Honest Riders Ever Stopped</th>
-                <th className="py-3 px-4">Rented Sessions Caught</th>
-                <th className="py-3 px-4">↳ Caught on Same Phone</th>
-                <th className="py-3 px-4">Rented Accounts Caught</th>
-                <th className="py-3 px-4">Median Shifts to Catch</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e2c47]/60">
-              {POLICY_ROWS.map(({ key, label, ours }) => {
-                const b = metrics.baselines[key];
-                const pct = (v: number) => `${Number(v.toFixed(2))}%`;
-                const shifts = b.median_sessions_to_catch;
-                return (
-                  <tr
-                    key={key}
-                    className={ours ? 'bg-cyan-950/40 border-l-2 border-cyan-400' : 'hover:bg-neutral-800/30 transition'}
-                  >
-                    <td className={`py-3 px-4 font-bold ${ours ? 'text-cyan-300' : 'text-slate-300'}`}>
-                      {ours ? `${label} (threshold ${metrics.default_threshold})` : label}
-                    </td>
-                    <td className="py-3 px-4 text-slate-200">{pct(b.false_lockout)}</td>
-                    <td className="py-3 px-4 text-slate-200">{pct(b.honest_riders_ever_stopped)}</td>
-                    <td className="py-3 px-4 text-slate-200">{pct(b.takeover_caught)}</td>
-                    <td className="py-3 px-4 text-slate-200">{pct(b.takeover_caught_same_device)}</td>
-                    <td className="py-3 px-4 text-slate-200">{pct(b.accounts_caught)}</td>
-                    <td className="py-3 px-4 text-slate-200">
-                      {shifts == null ? '-' : `${shifts} shift${shifts === 1 ? '' : 's'}${ours ? ' (median)' : ''}`}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ScaleCard />
     </div>
   );
 };

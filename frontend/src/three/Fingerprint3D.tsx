@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sparkles } from '@react-three/drei';
-import { LabelProjector, registerLabel, type LabelAnchor } from './LabelProjector';
+import { LabelProjector, type LabelAnchor } from './LabelProjector';
+import { registerLabel } from './labels';
 import * as THREE from 'three';
 import type { SignalGroupDetail } from '../types/api';
 import { getActionHex } from '../utils/status';
@@ -18,10 +19,10 @@ import { FEATURES, FEATURE_DIRECTIONS, NORMAL_BAND_Z, featureDeviations, feature
 const SHELL_RADIUS = 1;
 const MIN_LEN = 0.28;
 const MAX_Z = 6;
-const INSIDE = new THREE.Color('#22d3ee');
+const INSIDE = new THREE.Color('#d9d6cf');
 const EDGE = new THREE.Color('#fde047');
 const OUTSIDE = new THREE.Color('#e11d48');
-const MISSING = new THREE.Color('#334155');
+const MISSING = new THREE.Color('#3a3936');
 
 const HEARTBEAT_HZ: Record<string, number> = { ALLOW: 0.9, ENROLLING: 0.7, SOFT_CHECK: 1.5, STEP_UP: 2.3, REVIEW: 3.2 };
 
@@ -125,11 +126,11 @@ function Shell({ hex, breached }: { hex: string; breached: boolean }) {
     <group>
       <mesh>
         <sphereGeometry args={[SHELL_RADIUS, 48, 48]} />
-        <meshBasicMaterial color={hex} transparent opacity={0.045} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={hex} transparent opacity={0.035} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <mesh ref={wire}>
         <icosahedronGeometry args={[SHELL_RADIUS, 3]} />
-        <meshBasicMaterial color={hex} wireframe transparent opacity={0.13} depthWrite={false} />
+        <meshBasicMaterial color={hex} wireframe transparent opacity={0.1} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -166,6 +167,8 @@ export interface Fingerprint3DProps {
   /** label the biggest outliers at their spike tips */
   labels?: boolean;
   autoRotate?: boolean;
+  /** camera distance; larger shows long outlier spikes whole */
+  distance?: number;
   className?: string;
 }
 
@@ -175,6 +178,7 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
   height = 360,
   labels = true,
   autoRotate = true,
+  distance = 3.4,
   className = '',
 }) => {
   const z = useMemo(() => featureDeviations(signals), [signals]);
@@ -217,7 +221,7 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
 
   return (
     <div className={`relative ${className}`} style={{ height }}>
-      <Canvas camera={{ position: [0, 0.6, 3.4], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
+      <Canvas camera={{ position: [0, 0.6 * (distance / 3.4), distance], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
         <ambientLight intensity={0.35} />
         <pointLight position={[3, 3, 3]} intensity={30} />
         <Core hex={hex} hz={HEARTBEAT_HZ[action] ?? 1} />
@@ -232,7 +236,7 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
           />
         ))}
         <LabelProjector anchors={anchors} elements={labelEls} />
-        <Sparkles count={50} scale={4.5} size={1.6} speed={0.25} opacity={0.5} color={hex} />
+        <Sparkles count={36} scale={4.5} size={1.2} speed={0.2} opacity={0.35} color="#edebe6" />
         <OrbitControls enablePan={false} enableZoom={false} autoRotate={autoRotate} autoRotateSpeed={0.7} />
       </Canvas>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -241,9 +245,9 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
             <div
               key={name}
               ref={registerLabel(labelEls, name)}
-              className="invisible absolute left-0 top-0 whitespace-nowrap rounded-md border border-rose-500/60 bg-[#000000]/90 px-2 py-0.5 text-[12px] font-medium text-slate-100 shadow-lg"
+              className="invisible absolute left-0 top-0 whitespace-nowrap border-l-2 border-review bg-ink/90 px-2 py-0.5 font-mono text-[11px] text-paper"
             >
-              {featureLabel(name)} <span className="text-slate-400">· {(z[name] ?? 0).toFixed(1)}σ</span>
+              {featureLabel(name)} <span className="text-review">{(z[name] ?? 0).toFixed(1)}σ</span>
             </div>
           ))}
       </div>
@@ -253,17 +257,16 @@ export const Fingerprint3D: React.FC<Fingerprint3DProps> = ({
 
 /** DOM legend for the fingerprint: identity is never colour alone. */
 export const FingerprintLegend: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400 ${className}`}>
-    <span className="flex items-center gap-1.5">
-      <span className="inline-block h-2.5 w-2.5 rounded-full border border-slate-500 bg-slate-500/20" />
-      Glass shell = rider's normal range (2σ)
+  <div className={`flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10.5px] text-mute ${className}`}>
+    <span className="flex items-center gap-2">
+      <span className="inline-block h-2.5 w-2.5 rounded-full border border-paper-2" /> shell = this rider's normal (2σ)
     </span>
-    <span className="flex items-center gap-1.5">
-      <span className="inline-block h-0.5 w-4 rounded bg-[#22d3ee]" /> inside = matches
+    <span className="flex items-center gap-2">
+      <span className="inline-block h-px w-4 bg-paper" /> inside = matches
     </span>
-    <span className="flex items-center gap-1.5">
-      <span className="inline-block h-0.5 w-4 rounded bg-[#e11d48]" /> through the shell = doesn't match
+    <span className="flex items-center gap-2">
+      <span className="inline-block h-px w-4 bg-review" /> through the shell = doesn't
     </span>
-    <span className="text-slate-500">Bands, top → bottom: typing · swipe · grip · riding</span>
+    <span className="text-dim">bands top to bottom: typing · swipe · grip · riding</span>
   </div>
 );

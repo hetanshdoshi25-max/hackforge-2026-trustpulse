@@ -2,23 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import type { KeyTelemetry, MotionTelemetry, Session, SessionStartPayload } from '../types/api';
 import { PinPad } from '../components/rider-app/PinPad';
-import { ConsentScreen, hasConsent } from '../components/rider-app/ConsentScreen';
+import { ConsentScreen } from '../components/rider-app/ConsentScreen';
+import { hasConsent } from '../components/rider-app/consent';
 import { StepUpCamera } from '../components/rider-app/StepUpCamera';
 import { DemoOrderScreen } from '../components/rider-app/DemoOrderScreen';
-import { StatusBadge } from '../components/common/StatusBadge';
-import { TrustScore } from '../components/common/TrustScore';
-import {
-  Smartphone,
-  MapPin,
-  RefreshCw,
-  ShieldCheck,
-  AlertTriangle,
-  RotateCcw,
-  Sparkles,
-  Compass,
-  CheckCircle2,
-  ExternalLink,
-} from 'lucide-react';
+import { Btn, Label, Meter, PulseMark, Wordmark } from '../components/ui/kit';
+import { getActionHex } from '../utils/status';
 
 const INDIAN_CITIES = [
   { city: 'Mumbai', lat: 19.07, lon: 72.87 },
@@ -209,118 +198,98 @@ export const RiderAppPage: React.FC = () => {
     setLoginError(null);
   };
 
+  const firstName = (riderName.trim() || 'Ramesh').split(/\s+/)[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Late shift' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <div className="min-h-screen bg-[#000000] text-slate-100 flex flex-col justify-between p-4 md:p-6 select-none font-mono">
-      {/* Rider App Mobile Shell Header */}
-      <div className="w-full max-w-sm mx-auto flex items-center justify-between pb-3 border-b border-[#1e2c47]">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-cyan-400">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="font-bold text-xs tracking-wider text-slate-100">
-              TRUST<span className="text-cyan-400">PULSE</span>
-            </span>
-            <span className="text-[10px] text-slate-400 block -mt-0.5">Rider Partner App</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {motionLive ? (
-            <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-              <Compass className="w-3 h-3" /> Sensors Active
-            </span>
-          ) : (
+    <div className="flex min-h-[100dvh] select-none flex-col bg-ink text-paper">
+      {/* phone header */}
+      <header className="border-b border-line">
+        <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-5">
+          <Wordmark size="sm" />
+          <div className="flex items-center gap-4">
             <span
-              title="No motion data: phone grip won't be scored"
-              className="text-[10px] text-yellow-300 flex items-center gap-1 bg-yellow-950/50 px-2 py-0.5 rounded border border-yellow-800"
+              className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em]"
+              title={motionLive ? 'Phone grip is being read' : "No motion data: phone grip won't be scored"}
             >
-              <Compass className="w-3 h-3" /> No motion data
+              <span className={`h-1.5 w-1.5 rounded-full ${motionLive ? 'bg-allow' : 'bg-soft'}`} />
+              <span className={motionLive ? 'text-paper-2' : 'text-soft'}>{motionLive ? 'grip on' : 'no grip'}</span>
             </span>
-          )}
-          <a
-            href="/dashboard"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-          >
-            Ops Console <ExternalLink className="w-3 h-3" />
-          </a>
+            <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="font-mono text-[11px] text-mute hover:text-paper">
+              ops ↗
+            </a>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content Area */}
-      <div className="w-full max-w-sm mx-auto my-auto py-4">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 py-7">
         {!consented ? (
           /* ONE-TIME CONSENT, before any behavioural data is used */
           <ConsentScreen onAccept={() => setConsented(true)} />
         ) : !currentSession ? (
-          /* LOGIN SCREEN */
-          <div className="space-y-4">
-            <div className="text-center space-y-1">
-              <h2 className="text-base font-bold text-slate-100">Partner Login</h2>
-              <p className="text-xs text-slate-400">
-                Enter your 4-digit security PIN to start session
-              </p>
+          /* LOGIN */
+          <div className="flex flex-1 flex-col">
+            <div className="animate-rise">
+              <Label>Partner login · {selectedCity.city}</Label>
+              <h1 className="mt-3 font-serif text-[42px] leading-[0.95] text-paper">
+                {greeting},<br />
+                <em>{firstName}.</em>
+              </h1>
+              <p className="mt-3 text-[14px] text-paper-2">Type your PIN the way you always do.</p>
             </div>
 
-            {/* Demo Simulation Controls */}
-            <div className="p-3 rounded-xl bg-[#0a0a0a] border border-[#1e2c47] space-y-2 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold border-b border-slate-800 pb-1.5">
-                <span className="flex items-center gap-1 text-cyan-400">
-                  <Sparkles className="w-3.5 h-3.5" /> Hackathon Demo Controls
-                </span>
-                <div className="flex items-center gap-2">
-                  {!motionLive && (
-                    <button
-                      type="button"
-                      onClick={requestIosSensors}
-                      className="text-cyan-400 hover:text-cyan-300 underline text-[10px]"
-                    >
-                      Enable Sensors
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleSimulateNewDevice}
-                    className="text-slate-300 hover:text-white underline text-[10px]"
-                  >
-                    Simulate New Phone
-                  </button>
-                </div>
-              </div>
+            {loginError && (
+              <div className="mt-5 border-l-2 border-review pl-3 font-mono text-[12px] text-[#ff6b86]">{loginError}</div>
+            )}
 
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block text-[10px]">RIDER ID</span>
-                  <input
-                    type="text"
-                    value={riderId}
-                    onChange={(e) => setRiderId(e.target.value)}
-                    className="w-full bg-neutral-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
-                  />
+            <div className="mt-8">
+              {isLoggingIn ? (
+                <div className="flex h-[360px] flex-col items-center justify-center gap-5 text-center">
+                  <PulseMark size={44} className="animate-pulse text-paper" />
+                  <div className="font-serif text-[26px] text-paper">Reading your rhythm</div>
+                  <div className="relative h-px w-48 overflow-hidden bg-line">
+                    <span className="absolute inset-y-0 w-1/3 animate-sweep bg-paper" />
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">NAME</span>
-                  <input
-                    type="text"
-                    value={riderName}
-                    onChange={(e) => setRiderName(e.target.value)}
-                    className="w-full bg-neutral-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
-                  />
-                </div>
-              </div>
+              ) : (
+                <PinPad onPinComplete={handlePinComplete} disabled={isLoggingIn} />
+              )}
+            </div>
 
-              <div className="flex items-center justify-between text-[11px] pt-1">
-                <div className="flex items-center gap-1 text-slate-300">
-                  <MapPin className="w-3 h-3 text-slate-500" />
+            {!motionLive && (
+              <p className="mt-6 text-[12px] leading-relaxed text-mute">
+                <span className="text-soft">No motion data.</span>{' '}
+                {window.isSecureContext
+                  ? 'Tap "Enable sensors" below (iPhone) or allow motion sensors in the browser.'
+                  : 'This page is not on https://, so the phone blocks motion sensors and grip is not scored. Open the https:// address that python start.py --phone prints.'}
+              </p>
+            )}
+
+            {/* demo controls, out of the rider's way */}
+            <details className="group mt-auto border-t border-line pt-4 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between pt-6">
+                <span className="label">Demo controls</span>
+                <span className="font-mono text-[13px] text-mute transition group-open:rotate-45">+</span>
+              </summary>
+              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4">
+                <label className="block">
+                  <span className="label">Rider ID</span>
+                  <input value={riderId} onChange={(e) => setRiderId(e.target.value)} className="field mt-1 w-full" />
+                </label>
+                <label className="block">
+                  <span className="label">Name</span>
+                  <input value={riderName} onChange={(e) => setRiderName(e.target.value)} className="field mt-1 w-full" />
+                </label>
+                <label className="block">
+                  <span className="label">City</span>
                   <select
                     value={selectedCity.city}
                     onChange={(e) => {
                       const found = INDIAN_CITIES.find((c) => c.city === e.target.value);
                       if (found) setSelectedCity(found);
                     }}
-                    className="bg-neutral-900 border border-slate-700 text-slate-200 rounded px-1.5 py-0.5 text-xs"
+                    className="field mt-1 w-full"
                   >
                     {INDIAN_CITIES.map((c) => (
                       <option key={c.city} value={c.city}>
@@ -328,190 +297,53 @@ export const RiderAppPage: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                </label>
+                <div>
+                  <span className="label">Phone</span>
+                  <div className="mt-1 border-b border-line-2 py-1.5 font-mono text-[13px] text-paper-2">{deviceId.slice(0, 11)}</div>
                 </div>
-
-                <div className="flex items-center gap-1 text-slate-400 text-[10px]">
-                  <Smartphone className="w-3 h-3 text-slate-500" />
-                  <span>{deviceId.slice(0, 8)}...</span>
-                </div>
               </div>
-            </div>
-
-            {!motionLive && (
-              <div className="p-2.5 rounded-lg bg-yellow-950/40 border border-yellow-800 text-yellow-200 text-[11px] leading-relaxed">
-                {window.isSecureContext
-                  ? 'Phone motion sensors are not sending data. Tap "Enable Sensors" (iPhone) or check the browser allows motion sensors.'
-                  : 'This page is not on https://, so the phone blocks motion sensors and phone grip is not scored. Open the https:// address that python start.py --phone prints.'}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Btn variant="line" className="flex-1 !py-2 text-[12px]" onClick={handleSimulateNewDevice}>
+                  Simulate new phone
+                </Btn>
+                {!motionLive && (
+                  <Btn variant="line" className="flex-1 !py-2 text-[12px]" onClick={requestIosSensors}>
+                    Enable sensors
+                  </Btn>
+                )}
               </div>
-            )}
-
-            {/* Error message */}
-            {loginError && (
-              <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs text-center flex items-center justify-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            {/* On-Screen Custom PIN Keypad */}
-            {isLoggingIn ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
-                <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
-                <span className="text-xs text-slate-300">
-                  Analyzing keystroke dynamics & verifying identity...
-                </span>
-              </div>
-            ) : (
-              <PinPad onPinComplete={handlePinComplete} disabled={isLoggingIn} />
-            )}
+            </details>
           </div>
         ) : (
-          /* ACTIVE SESSION SCREEN */
-          <div className="space-y-4">
-            {/* Session Status Banner */}
-            <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-[#1e2c47] space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-slate-100">{currentSession.name}</h3>
-                  <span className="text-[10px] text-slate-400">
-                    Session {currentSession.session_id.slice(0, 8)} · {currentSession.city}
-                  </span>
-                </div>
-                <StatusBadge type="action" value={currentSession.action} size="sm" />
-              </div>
+          /* ACTIVE SESSION */
+          <div className="flex flex-1 flex-col">
+            <SessionVerdict session={currentSession} onOpenCamera={() => setShowStepUpModal(true)} />
 
-              {/* Action-Specific Experience */}
-              {currentSession.action === 'ENROLLING' && (
-                <div className="p-3 rounded-xl bg-blue-950/50 border border-blue-800 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-blue-300 font-semibold">Learning Your Normal Pattern</span>
-                    <span className="text-blue-400 font-bold">
-                      {currentSession.enroll_progress} / {currentSession.enroll_target} Logins
-                    </span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-blue-950 border border-blue-900 overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{
-                        width: `${(currentSession.enroll_progress / currentSession.enroll_target) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    TrustPulse is enrolling your unique PIN typing speed and sensor habits. Log in
-                    a few more times to complete your personal behavioral profile.
-                  </p>
-                </div>
-              )}
-
-              {currentSession.action === 'ALLOW' && (
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800 text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{currentSession.status === 'VERIFIED' ? 'Identity Verified · Session Active' : 'Behavior Verified · Session Active'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    {currentSession.status === 'VERIFIED'
-                      ? 'The operations team confirmed it’s you. You are cleared for delivery orders.'
-                      : 'Your typing and motion match your baseline. You are cleared for delivery orders.'}
-                  </p>
-                </div>
-              )}
-
-              {currentSession.action === 'SOFT_CHECK' && (
-                <div className="p-3 rounded-xl bg-amber-950/50 border border-amber-800 text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Soft Check: Quick selfie at next pickup</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    Non-blocking check. Continue your delivery route normally.
-                  </p>
-                </div>
-              )}
-
-              {currentSession.action === 'STEP_UP' && (
-                <div className="p-3 rounded-xl bg-orange-950/50 border border-orange-800 text-xs space-y-2">
-                  <div className="flex items-center gap-1.5 text-orange-400 font-bold">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Verification Required</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    {currentSession.verdict || 'A camera selfie is required to verify identity.'}
-                  </p>
-                  <button
-                    onClick={() => setShowStepUpModal(true)}
-                    className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs transition"
-                  >
-                    Open Camera Verification
-                  </button>
-                </div>
-              )}
-
-              {currentSession.status === 'BLOCKED' ? (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-700 text-xs space-y-1 text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-rose-300 font-bold">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Account access blocked</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    A reviewer confirmed this session wasn't the registered rider. Contact fleet support.
-                  </p>
-                </div>
-              ) : (
-                currentSession.action === 'REVIEW' && (
-                  <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-xs space-y-2 text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-rose-400 font-bold">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span>Session Paused Under Review</span>
-                    </div>
-                    <p className="text-[11px] text-slate-300">
-                      {currentSession.has_selfie
-                        ? 'Your selfie is with the operations team. This screen updates as soon as they decide.'
-                        : 'Send a verification selfie so the operations team can confirm it’s you.'}
-                    </p>
-                    {!currentSession.has_selfie && (
-                      <button
-                        onClick={() => setShowStepUpModal(true)}
-                        className="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition"
-                      >
-                        Send Verification Selfie
-                      </button>
-                    )}
-                  </div>
-                )
-              )}
-
-              {/* Trust Score & Metrics summary */}
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
-                <span className="text-slate-400">Trust Score:</span>
-                <TrustScore score={currentSession.trust} size="sm" showLabel />
-              </div>
-            </div>
-
-            {/* Orders Screen for Allowed/Enrolling riders */}
             {(currentSession.action === 'ALLOW' ||
               currentSession.action === 'ENROLLING' ||
-              currentSession.action === 'SOFT_CHECK') && (
-              <DemoOrderScreen
-                session={currentSession}
-                motionSince={motionSince}
-                onSessionUpdate={setCurrentSession}
-                onTriggerStepUp={() => setShowStepUpModal(true)}
-              />
-            )}
+              currentSession.action === 'SOFT_CHECK') &&
+              currentSession.status !== 'BLOCKED' && (
+                <div className="mt-9">
+                  <DemoOrderScreen
+                    session={currentSession}
+                    motionSince={motionSince}
+                    onSessionUpdate={setCurrentSession}
+                    onTriggerStepUp={() => setShowStepUpModal(true)}
+                  />
+                </div>
+              )}
 
             <button
               onClick={handleLogout}
-              className="w-full py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs transition flex items-center justify-center gap-1.5"
+              className="mt-auto pt-10 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-mute hover:text-paper"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> End Shift / New Session
+              End shift · new login
             </button>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Step-up camera verification modal */}
       {showStepUpModal && currentSession && (
         <StepUpCamera
           session={currentSession}
@@ -526,10 +358,105 @@ export const RiderAppPage: React.FC = () => {
           onClose={() => setShowStepUpModal(false)}
         />
       )}
+    </div>
+  );
+};
 
-      {/* Footer */}
-      <div className="w-full max-w-sm mx-auto text-center text-[10px] text-slate-400 border-t border-slate-900 pt-2">
-        TrustPulse Continuous Behavioral Biometrics · Team Braniacs
+/** What the rider sees after a login: one sentence, never a score sheet. */
+const SessionVerdict: React.FC<{ session: Session; onOpenCamera: () => void }> = ({ session: s, onOpenCamera }) => {
+  const hex = getActionHex(s.status === 'BLOCKED' ? 'REVIEW' : s.action);
+  let kicker: string;
+  let title: React.ReactNode;
+  let body: React.ReactNode;
+  let cta: React.ReactNode = null;
+
+  if (s.status === 'BLOCKED') {
+    kicker = 'Account access blocked';
+    title = (
+      <>
+        This login was <em>not you.</em>
+      </>
+    );
+    body = "A reviewer confirmed this session wasn't the registered rider. Contact fleet support.";
+  } else if (s.action === 'ENROLLING') {
+    kicker = `Learning you · ${s.enroll_progress} of ${s.enroll_target}`;
+    title = (
+      <>
+        Getting to <em>know you.</em>
+      </>
+    );
+    body = 'TrustPulse is learning how you type and hold your phone. A few more logins and your profile is complete.';
+  } else if (s.action === 'ALLOW') {
+    kicker = s.status === 'VERIFIED' ? 'Verified by the ops team' : 'Same rhythm · same rider';
+    title = (
+      <>
+        You're <em>in.</em>
+      </>
+    );
+    body =
+      s.status === 'VERIFIED'
+        ? "The operations team confirmed it's you. You're cleared for orders."
+        : "Your typing and grip match you. You're cleared for orders.";
+  } else if (s.action === 'SOFT_CHECK') {
+    kicker = 'Soft check';
+    title = (
+      <>
+        Ride on. <em>Quick check later.</em>
+      </>
+    );
+    body = 'Nothing is blocked. You may be asked for a selfie at your next pickup.';
+  } else if (s.action === 'STEP_UP') {
+    kicker = 'Verification needed';
+    title = (
+      <>
+        One more <em>step.</em>
+      </>
+    );
+    body = s.verdict || 'A quick selfie confirms it is you.';
+    cta = (
+      <Btn variant="solid" className="mt-5 w-full py-3.5" onClick={onOpenCamera}>
+        Open camera
+      </Btn>
+    );
+  } else {
+    kicker = 'Paused for review';
+    title = (
+      <>
+        Hold on, <em>a person will check.</em>
+      </>
+    );
+    body = s.has_selfie
+      ? 'Your selfie is with the operations team. This screen updates the moment they decide.'
+      : "Send a selfie so the operations team can confirm it's you.";
+    cta = !s.has_selfie && (
+      <Btn variant="solid" className="mt-5 w-full py-3.5" onClick={onOpenCamera}>
+        Send a selfie
+      </Btn>
+    );
+  }
+
+  return (
+    <div className="animate-rise">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: hex }}>
+          ■ {kicker}
+        </span>
+        <span className="tnum font-mono text-[11px] text-mute">trust {s.trust}</span>
+      </div>
+      <h2 className="mt-4 font-serif text-[46px] leading-[0.95] text-paper">{title}</h2>
+      <p className="mt-4 text-[14.5px] leading-relaxed text-paper-2">{body}</p>
+      {s.action === 'ENROLLING' ? (
+        <div className="mt-5 flex gap-1">
+          {Array.from({ length: s.enroll_target }).map((_, i) => (
+            <span key={i} className="h-1 flex-1" style={{ background: i < s.enroll_progress ? hex : 'var(--color-line)' }} />
+          ))}
+        </div>
+      ) : (
+        <Meter value={s.trust} color={hex} className="mt-5" />
+      )}
+      {cta}
+      <div className="mt-4 font-mono text-[10.5px] text-dim">
+        session {s.session_id.slice(0, 8)} · {s.city ?? 'unknown city'}
       </div>
     </div>
   );

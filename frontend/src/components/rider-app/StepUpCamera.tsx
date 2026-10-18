@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, CheckCircle2, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { Btn, Label } from '../ui/kit';
 import { api } from '../../services/api';
 import type { Session } from '../../types/api';
 
@@ -130,129 +131,97 @@ export const StepUpCamera: React.FC<StepUpCameraProps> = ({
     }
   };
 
+  const corner = 'absolute h-6 w-6 border-paper';
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in"
-    >
-      <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#1e2c47] rounded-2xl p-5 shadow-2xl flex flex-col text-xs font-mono">
-        {onClose && !isSubmitted && (
-          <button
-            onClick={() => {
-              stopCamera();
-              onClose();
-            }}
-            className="absolute top-4 right-4 text-slate-400 hover:text-slate-200"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        <div className="flex items-center gap-2.5 pb-3 border-b border-[#1e2c47] mb-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-950/80 border border-orange-800 flex items-center justify-center text-orange-400">
-            <Camera className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-100">Step-Up Selfie Verification</h3>
-            <span className="text-[10px] text-slate-400">
-              Identity verification required for Session {session.session_id.slice(0, 8)}
-            </span>
-          </div>
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex flex-col bg-ink">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-6 pt-5">
+        <div className="flex items-center justify-between">
+          <Label>Step up · session {session.session_id.slice(0, 8)}</Label>
+          {onClose && !isSubmitted && (
+            <button
+              onClick={() => {
+                stopCamera();
+                onClose();
+              }}
+              aria-label="Close"
+              className="text-mute hover:text-paper"
+            >
+              <X className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+          )}
         </div>
 
-        {/* Camera Preview or Submitted State */}
         {!isSubmitted ? (
-          <div className="space-y-4">
-            <p className="text-slate-300 text-[11px] leading-relaxed">
-              TrustPulse detected behavioral differences during your recent interaction.
-              Please capture a quick selfie to confirm your identity with the operations team.
+          <>
+            <h3 className="mt-4 font-serif text-[38px] leading-[0.98] text-paper">
+              Show us <em>it's you.</em>
+            </h3>
+            <p className="mt-3 text-[14px] leading-relaxed text-paper-2">
+              Something about this login didn't feel like you. One selfie, checked by a person on the operations team.
             </p>
 
-            <div className="relative w-full aspect-4/3 rounded-xl bg-black border border-slate-700 overflow-hidden flex items-center justify-center">
+            <div className="relative mt-6 aspect-[3/4] w-full overflow-hidden bg-ink-2">
               {hasPermission === false ? (
-                <div className="p-4 text-center text-rose-300 space-y-2">
-                  <AlertTriangle className="w-8 h-8 mx-auto text-rose-400" />
-                  <p className="text-xs">{cameraError || 'Camera permission denied.'}</p>
-                  <button
-                    onClick={startCamera}
-                    className="px-3 py-1.5 rounded bg-neutral-800 text-slate-200 border border-slate-700 hover:bg-slate-700"
-                  >
-                    Retry Camera
-                  </button>
+                <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+                  <div className="font-serif text-2xl text-paper">Camera is off</div>
+                  <p className="font-mono text-[12px] text-mute">{cameraError || 'Camera permission denied.'}</p>
+                  <Btn variant="line" onClick={startCamera}>
+                    Try the camera again
+                  </Btn>
                 </div>
               ) : (
                 <>
-                  <video
-                    ref={videoRef}
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover mirror"
-                  />
-                  {/* Subtle target face oval */}
-                  <div className="absolute inset-8 border-2 border-dashed border-cyan-400/40 rounded-full pointer-events-none" />
+                  <video ref={videoRef} playsInline muted className="mirror h-full w-full object-cover" />
+                  <div className="pointer-events-none absolute inset-[14%_18%] rounded-[50%] border border-dashed border-paper/50" />
+                  <span className={`${corner} left-3 top-3 border-l border-t`} />
+                  <span className={`${corner} right-3 top-3 border-r border-t`} />
+                  <span className={`${corner} bottom-3 left-3 border-b border-l`} />
+                  <span className={`${corner} bottom-3 right-3 border-b border-r`} />
+                  <span className="label absolute bottom-4 left-1/2 -translate-x-1/2 !text-paper-2">Face inside the oval</span>
                 </>
               )}
             </div>
 
-            <button
-              onClick={handleCaptureAndSubmit}
-              disabled={isCapturing || hasPermission !== true}
-              className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-orange-950 disabled:opacity-50"
-            >
-              {isCapturing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Capturing & Submitting...</span>
-                </>
-              ) : (
-                <>
-                  <Camera className="w-4 h-4" />
-                  <span>Capture & Submit Selfie</span>
-                </>
-              )}
-            </button>
-          </div>
+            <div className="mt-auto flex flex-col items-center pt-6">
+              <button
+                onClick={handleCaptureAndSubmit}
+                disabled={isCapturing || hasPermission !== true}
+                aria-label="Capture and send selfie"
+                className="group flex h-[74px] w-[74px] items-center justify-center rounded-full border-2 border-paper transition disabled:opacity-35"
+              >
+                <span className={`h-[58px] w-[58px] rounded-full bg-paper transition group-active:scale-90 ${isCapturing ? 'animate-pulse' : ''}`} />
+              </button>
+              <span className="label mt-3">{isCapturing ? 'Sending' : 'Capture and send'}</span>
+            </div>
+          </>
         ) : (
-          /* Submitted - Polling Reviewer State */
-          <div className="py-6 flex flex-col items-center text-center space-y-4">
+          <div className="flex flex-1 flex-col justify-center">
             {pollStatus === 'VERIFIED' ? (
-              <>
-                <div className="w-14 h-14 rounded-full bg-emerald-950/80 border border-emerald-600 text-emerald-400 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h4 className="text-base font-bold text-emerald-400">Verified by Reviewer</h4>
-                <p className="text-slate-300 text-xs">{terminalVerdict}</p>
-                <span className="text-[11px] text-slate-400">Resuming active session...</span>
-              </>
+              <div className="border-l-2 border-allow pl-5">
+                <Label className="!text-allow">Verified by a reviewer</Label>
+                <h4 className="mt-2 font-serif text-[40px] leading-none text-paper">Welcome back.</h4>
+                <p className="mt-3 text-[14px] text-paper-2">{terminalVerdict}</p>
+                <p className="mt-1 text-[12px] text-mute">Resuming your shift</p>
+              </div>
             ) : pollStatus === 'BLOCKED' ? (
-              <>
-                <div className="w-14 h-14 rounded-full bg-rose-950/80 border border-rose-600 text-rose-400 flex items-center justify-center">
-                  <AlertTriangle className="w-8 h-8" />
-                </div>
-                <h4 className="text-base font-bold text-rose-400">Account Access Blocked</h4>
-                <p className="text-slate-300 text-xs">{terminalVerdict}</p>
-                <span className="text-[11px] text-slate-400">
-                  Please contact fleet support for assistance.
-                </span>
-              </>
+              <div className="border-l-2 border-review pl-5">
+                <Label className="!text-review">Access blocked</Label>
+                <h4 className="mt-2 font-serif text-[40px] leading-none text-paper">This wasn't confirmed.</h4>
+                <p className="mt-3 text-[14px] text-paper-2">{terminalVerdict}</p>
+                <p className="mt-1 text-[12px] text-mute">Please contact fleet support.</p>
+              </div>
             ) : (
-              <>
-                <div className="relative flex items-center justify-center">
-                  <RefreshCw className="w-10 h-10 text-cyan-400 animate-spin" />
-                  <div className="absolute w-14 h-14 rounded-full border border-cyan-500/30 animate-ping" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-100">
-                  Verification Frame Transmitted
+              <div>
+                <Label>Selfie sent · in the review queue</Label>
+                <h4 className="mt-2 font-serif text-[40px] leading-[0.98] text-paper">
+                  A person is <em>looking now.</em>
                 </h4>
-                <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
-                  Your verification selfie is currently in the operations review queue.
-                  Polling decision status from TrustPulse engine...
-                </p>
-                <div className="text-[10px] text-slate-400 bg-neutral-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                  Session Status: <strong className="text-amber-400">{pollStatus}</strong>
+                <p className="mt-3 text-[14px] text-paper-2">This screen updates by itself the moment they decide.</p>
+                <div className="relative mt-8 h-px w-full overflow-hidden bg-line">
+                  <span className="absolute inset-y-0 w-1/3 animate-sweep bg-paper" />
                 </div>
-              </>
+                <div className="mt-3 font-mono text-[11px] text-mute">status: {pollStatus}</div>
+              </div>
             )}
           </div>
         )}

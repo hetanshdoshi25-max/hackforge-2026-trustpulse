@@ -4,7 +4,7 @@ import { AppShell } from './components/layout/AppShell';
 
 import { RiderAppPage } from './pages/RiderAppPage';
 import { LandingPage } from './pages/LandingPage';
-import { LoadingState } from './components/common/LoadingState';
+import { Loading } from './components/ui/kit';
 
 // Ops/3D pages load on demand, so the phone opening /rider never downloads three.js.
 const page = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>
@@ -26,7 +26,7 @@ const PlayPage = page(() => import('./pages/PlayPage'), 'PlayPage');
 export function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingState message="Loading…" />}>
+      <Suspense fallback={<Loading />}>
       <Routes>
         {/* Entry: choose rider app or ops dashboard */}
         <Route path="/" element={<LandingPage />} />

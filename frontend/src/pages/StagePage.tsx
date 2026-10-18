@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Activity, AlertOctagon, ArrowLeft, CheckCircle2, Fingerprint, MapPin, ShieldAlert, Smartphone, Sparkles } from 'lucide-react';
 import { api } from '../services/api';
 import { socketService } from '../services/websocket';
-import type { Session, WebSocketMessage } from '../types/api';
+import type { Session, TimelineEntry, WebSocketMessage } from '../types/api';
 import { Fingerprint3D, FingerprintLegend } from '../three/Fingerprint3D';
-import { SIGNAL_GROUPS } from '../three/features';
 import { getActionHex, getActionMeta } from '../utils/status';
+import { ActionTag, Label, SignalReadout, Wordmark } from '../components/ui/kit';
+import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
+import { PulseStrip } from '../components/ui/PulseStrip';
 
 /**
  * Projector view for the live demo. Follows one rider (default DEMO1) or "any live
@@ -15,34 +16,14 @@ import { getActionHex, getActionMeta } from '../utils/status';
 
 const ESCALATED = new Set(['STEP_UP', 'REVIEW']);
 
-function useAnimatedNumber(target: number, ms = 700) {
-  const [value, setValue] = useState(target);
-  const from = useRef(target);
-  useEffect(() => {
-    const start = performance.now();
-    const a = from.current;
-    let raf = 0;
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / ms);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.round(a + (target - a) * eased));
-      if (p < 1) raf = requestAnimationFrame(tick);
-      else from.current = target;
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms]);
-  return value;
-}
-
 type Banner = { kind: 'caught' | 'same-person'; text: string; sub: string } | null;
 
 function bannerFor(s: Session): Banner {
   if (ESCALATED.has(s.action)) {
-    return { kind: 'caught', text: 'PERSON CHANGED', sub: s.verdict };
+    return { kind: 'caught', text: 'Person changed.', sub: s.verdict };
   }
   if (s.action === 'ALLOW' && s.context_risk >= 30) {
-    return { kind: 'same-person', text: 'CONTEXT CHANGED · SAME PERSON', sub: 'New phone or city, behaviour matches: no lockout' };
+    return { kind: 'same-person', text: 'Context changed. Same person.', sub: 'New phone or city, behaviour matches: no lockout' };
   }
   return null;
 }
@@ -92,41 +73,30 @@ export const StagePage: React.FC = () => {
   const trust = useAnimatedNumber(session?.trust ?? 100);
   const action = session?.action ?? 'ENROLLING';
   const hex = getActionHex(action);
-  const meta = getActionMeta(action);
   const alarm = ESCALATED.has(action);
   const timeline = useMemo(() => session?.timeline ?? [], [session]);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#000000] text-slate-100">
-      {/* ambient vignette in the status colour */}
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-ink text-paper">
+      {/* the room reacts: a faint wash in the decision colour */}
       <div
-        className="pointer-events-none absolute inset-0 transition-[background] duration-700"
-        style={{ background: `radial-gradient(ellipse at 35% 50%, ${hex}1f 0%, transparent 60%)` }}
+        className="pointer-events-none absolute inset-0 transition-[background] duration-1000"
+        style={{ background: `radial-gradient(60% 70% at 28% 50%, ${hex}${alarm ? '26' : '12'} 0%, transparent 70%)` }}
       />
-      {alarm && <div className="pointer-events-none absolute inset-0 animate-pulse bg-rose-900/10" />}
 
-      {/* header */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-5">
-        <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="text-slate-500 transition hover:text-slate-200" aria-label="Back to dashboard">
-            <ArrowLeft className="h-5 w-5" />
+      <header className="relative z-10 flex items-center justify-between border-b border-line px-8 py-4">
+        <div className="flex items-center gap-6">
+          <Link to="/dashboard" aria-label="Back to dashboard">
+            <Wordmark />
           </Link>
-          <div className="text-lg font-bold tracking-[0.2em]">
-            TRUST<span className="text-cyan-400">PULSE</span>
-          </div>
-          <span className="hidden text-sm text-slate-500 md:inline">Continuous identity · live</span>
+          <Label className="hidden md:block">Demo stage · live identity</Label>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className={`flex items-center gap-2 ${connected ? 'text-emerald-400' : 'text-slate-500'}`}>
-            <span className={`h-2 w-2 rounded-full ${connected ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
-            {connected ? 'LIVE' : 'connecting'}
+        <div className="flex items-center gap-6">
+          <span className="flex items-center gap-2 font-mono text-[12px]">
+            <span className={`h-2 w-2 rounded-full ${connected ? 'animate-pulse bg-allow' : 'bg-dim'}`} />
+            <span className={connected ? 'text-paper-2' : 'text-dim'}>{connected ? 'LIVE' : 'LINKING'}</span>
           </span>
-          <select
-            value={follow}
-            onChange={(e) => setParams({ rider: e.target.value })}
-            className="rounded-lg border border-slate-700 bg-neutral-900/80 px-2 py-1 text-slate-200"
-            aria-label="Rider to follow"
-          >
+          <select value={follow} onChange={(e) => setParams({ rider: e.target.value })} className="field !text-[13px]" aria-label="Rider to follow">
             <option value="DEMO1">Follow DEMO1</option>
             <option value="DEMO2">Follow DEMO2</option>
             <option value="*">Any live phone</option>
@@ -135,127 +105,134 @@ export const StagePage: React.FC = () => {
         </div>
       </header>
 
-      <main className="relative z-10 grid flex-1 grid-cols-1 gap-6 px-8 pb-8 lg:grid-cols-[1.35fr_1fr]">
-        {/* fingerprint */}
-        <section className="flex flex-col">
-          <div className="relative flex-1 min-h-[420px]">
-            <Fingerprint3D signals={session?.signals} action={action} height="100%" className="absolute inset-0" />
+      <main className="relative z-10 grid flex-1 grid-cols-1 lg:grid-cols-[1.25fr_1fr]">
+        {/* the fingerprint */}
+        <section className="relative flex min-h-[460px] flex-col border-line lg:border-r">
+          <div className="absolute left-8 top-7 z-10">
+            <Label>{session ? `Login ${session.session_id.slice(0, 8)}` : 'No session yet'}</Label>
+            <div className="mt-2 font-serif text-[22px] italic text-paper-2">this login's behavioural fingerprint</div>
+          </div>
+          <div className="relative flex-1">
+            <Fingerprint3D signals={session?.signals} action={action} height="100%" distance={4.8} className="absolute inset-0" />
             {!session && (
-              <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
-                <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-black/85 px-5 py-3 backdrop-blur">
-                  <Smartphone className="h-6 w-6 shrink-0 text-slate-400" />
-                  <div className="text-left">
-                    <p className="text-base text-slate-200">Waiting for {anyLive ? 'a live phone' : follow} to log in…</p>
-                    <p className="text-sm text-slate-500">Open /rider on the phone and enter the PIN</p>
-                  </div>
-                </div>
+              <div className="absolute inset-x-0 bottom-10 z-10 text-center">
+                <div className="font-serif text-[30px] text-paper">Waiting for {anyLive ? 'a live phone' : follow} to log in</div>
+                <div className="mt-2 font-mono text-[12px] text-mute">open /rider on the phone and type the PIN</div>
               </div>
             )}
           </div>
-          <FingerprintLegend className="mt-2 justify-center" />
+          <FingerprintLegend className="justify-center px-6 pb-5" />
         </section>
 
-        {/* readout */}
-        <section className="flex flex-col gap-5">
+        {/* the readout */}
+        <section className="flex flex-col gap-5 px-8 py-6 xl:px-12">
           <div>
-            <div className="text-sm uppercase tracking-widest text-slate-500">{session ? session.rider_id : 'No session'}</div>
-            <div className="text-3xl font-semibold">{session?.name ?? '-'}</div>
+            <Label>{session ? session.rider_id : 'Following'}</Label>
+            <div className="mt-1.5 font-serif text-[46px] leading-[0.95]">{session?.name ?? follow}</div>
             {session && (
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
-                <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{session.city ?? 'Unknown city'}</span>
-                <span className="flex items-center gap-1.5"><Smartphone className="h-4 w-4" />{session.device_id?.slice(0, 10)}</span>
-                <span>Context risk {session.context_risk}</span>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[12px] text-mute">
+                <span>{session.city ?? 'unknown city'}</span>
+                <span>phone {session.device_id?.slice(0, 10)}</span>
+                <span>context risk {session.context_risk}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-end gap-6">
+          <div className="flex items-end gap-8 border-y border-line py-5">
             <div>
-              <div className="text-sm uppercase tracking-widest text-slate-500">Trust</div>
-              <div className="text-[7rem] font-bold leading-none tabular-nums" style={{ color: hex, textShadow: `0 0 40px ${hex}55` }}>
-                {session ? trust : '-'}
+              <Label>Trust</Label>
+              <div
+                className="tnum mt-1 font-mono text-[112px] font-light leading-[0.8] tracking-tighter xl:text-[132px]"
+                style={{ color: session ? hex : 'var(--color-dim)' }}
+              >
+                {session ? trust : '--'}
               </div>
             </div>
-            <div
-              className="mb-4 flex items-center gap-2 rounded-xl border px-4 py-2 text-lg font-semibold"
-              style={{ borderColor: `${hex}88`, background: `${hex}14`, color: hex }}
-            >
-              {alarm ? <ShieldAlert className="h-5 w-5" /> : action === 'ENROLLING' ? <Sparkles className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
-              {session ? meta.label : 'WAITING'}
+            <div className="pb-2">
+              {session ? <ActionTag action={action} size="lg" /> : <span className="label">waiting</span>}
+              <div className="mt-2 font-serif text-[24px] italic text-paper-2">{session ? getActionMeta(action).plain : ''}</div>
             </div>
           </div>
 
-          <p className="text-xl leading-snug text-slate-200">
-            {session?.verdict || 'Behaviour is compared with this rider’s own baseline on every login and swipe.'}
+          <p className="font-serif text-[23px] leading-snug text-paper">
+            {session?.verdict || "Every login and swipe is compared with this rider's own baseline."}
           </p>
 
-          {/* per-signal match */}
-          <div className="space-y-2.5">
-            {SIGNAL_GROUPS.map((g) => {
-              const sig = session?.signals?.[g.id];
-              const match = sig?.match;
-              return (
-                <div key={g.id}>
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-slate-300">{g.label}</span>
-                    <span className="tabular-nums text-slate-400">{match === undefined ? 'no data' : `${match}% match`}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-neutral-800/80">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${match ?? 0}%`, background: match === undefined ? 'transparent' : match >= 50 ? '#34d399' : match >= 25 ? '#fde047' : '#e11d48' }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <SignalReadout signals={session?.signals} large />
 
           {session && session.reasons.length > 0 && (
-            <ul className="space-y-1.5 border-t border-slate-800 pt-4 text-[15px] text-slate-300">
-              {session.reasons.slice(0, 5).map((r) => (
-                <li key={r} className="flex gap-2">
-                  <Activity className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+            <ul className="space-y-1 border-t border-line pt-3 font-mono text-[12px] text-paper-2">
+              {session.reasons.slice(0, 3).map((r) => (
+                <li key={r} className="flex gap-3">
+                  <span className="text-dim">·</span>
                   {r}
                 </li>
               ))}
             </ul>
           )}
 
-          {timeline.length > 1 && (
-            <div className="mt-auto">
-              <div className="mb-1 text-xs uppercase tracking-widest text-slate-500">Trust through this session</div>
-              <div className="flex h-12 items-end gap-1">
-                {timeline.map((p, i) => (
-                  <div
-                    key={i}
-                    title={`${getActionMeta(p.action).label} · trust ${p.trust}`}
-                    className="flex-1 rounded-t transition-all duration-500"
-                    style={{ height: `${Math.max(6, p.trust)}%`, background: getActionHex(p.action) }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {timeline.length > 1 && <SessionTrace timeline={timeline} />}
         </section>
       </main>
 
+      <div className="relative z-10 border-t border-line">
+        <div className="flex items-center gap-4 px-8">
+          <span className="label shrink-0">fleet heartbeat</span>
+          <PulseStrip height={40} className="flex-1" />
+        </div>
+      </div>
+
       {/* the moment */}
       {banner && (
-        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center px-8 lg:right-auto lg:w-[57%]">
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-30 -translate-y-1/2">
           <div
-            className={`animate-[stagebanner_0.5s_ease-out] rounded-2xl border px-10 py-5 text-center shadow-2xl backdrop-blur-md ${
-              banner.kind === 'caught' ? 'border-rose-500/70 bg-rose-950/70' : 'border-emerald-500/60 bg-emerald-950/60'
+            className={`origin-center animate-[stagebanner_.55s_cubic-bezier(.2,.8,.2,1)] border-y px-8 py-8 text-center backdrop-blur-sm ${
+              banner.kind === 'caught' ? 'border-review bg-review/90 text-white' : 'border-allow/70 bg-ink/85 text-allow'
             }`}
           >
-            <div className={`flex items-center justify-center gap-3 text-4xl font-black tracking-wider ${banner.kind === 'caught' ? 'text-rose-300' : 'text-emerald-300'}`}>
-              {banner.kind === 'caught' ? <AlertOctagon className="h-9 w-9" /> : <Fingerprint className="h-9 w-9" />}
-              {banner.text}
-            </div>
-            <div className="mt-1 text-base text-slate-200">{banner.sub}</div>
+            <div className="font-serif text-[64px] italic leading-none md:text-[88px]">{banner.text}</div>
+            <div className={`mt-3 font-mono text-[15px] ${banner.kind === 'caught' ? 'text-white/85' : 'text-paper-2'}`}>{banner.sub}</div>
           </div>
         </div>
       )}
+      <style>{'@keyframes stagebanner{from{opacity:0;transform:scaleY(.2)}to{opacity:1;transform:none}}'}</style>
+    </div>
+  );
+};
+
+/** Trust through this session as an ECG trace: one vertex per scored event. */
+const SessionTrace: React.FC<{ timeline: TimelineEntry[] }> = ({ timeline }) => {
+  const W = 600;
+  const H = 70;
+  const pts = timeline.map((p, i) => [(i / Math.max(1, timeline.length - 1)) * (W - 12) + 6, H - 6 - (p.trust / 100) * (H - 12)] as const);
+  return (
+    <div className="mt-auto">
+      <Label>Trust through this session</Label>
+      <div className="relative mt-2 h-[70px] w-full">
+        <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+          <line x1="0" x2={W} y1={H / 2} y2={H / 2} stroke="#252523" strokeDasharray="2 4" vectorEffect="non-scaling-stroke" />
+          {pts.slice(1).map(([x, y], i) => (
+            <line
+              key={i}
+              x1={pts[i][0]}
+              y1={pts[i][1]}
+              x2={x}
+              y2={y}
+              stroke={getActionHex(timeline[i + 1].action)}
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        {pts.map(([x, y], i) => (
+          <span
+            key={i}
+            title={`${getActionMeta(timeline[i].action).label} · trust ${timeline[i].trust}`}
+            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%`, background: getActionHex(timeline[i].action) }}
+          />
+        ))}
+      </div>
     </div>
   );
 };

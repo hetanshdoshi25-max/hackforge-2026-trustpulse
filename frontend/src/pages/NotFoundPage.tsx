@@ -1,23 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Arrow } from '../components/ui/kit';
 
-export const NotFoundPage: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-4 font-mono">
-      <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800 flex items-center justify-center text-rose-400">
-        <ShieldAlert className="w-8 h-8" />
-      </div>
-      <h2 className="text-xl font-bold text-slate-100">404: Route Not Found</h2>
-      <p className="text-xs text-slate-400 max-w-sm">
-        The requested operations endpoint or page does not exist in the TrustPulse console.
-      </p>
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-lg shadow-cyan-950"
-      >
-        <ArrowLeft className="w-4 h-4" /> Return to Dashboard Overview
-      </Link>
+export const NotFoundPage: React.FC = () => (
+  <div className="flex min-h-[60vh] flex-col justify-center">
+    <div className="label">404 · flatline</div>
+    <svg viewBox="0 0 600 60" className="mt-6 h-14 w-full max-w-2xl text-line-2" aria-hidden>
+      <path d="M0 30h220l10-18 14 36 12-26 8 8h336" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+    <h1 className="mt-6 font-serif text-[64px] leading-none">
+      No pulse <em>at this address.</em>
+    </h1>
+    <div className="mt-8">
+      <Arrow to="/dashboard">Back to the overview</Arrow>
     </div>
-  );
-};
+  </div>
+);

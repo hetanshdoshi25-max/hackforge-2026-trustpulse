@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { Package, ChevronRight, CheckCircle2, Navigation } from 'lucide-react';
 import { api } from '../../services/api';
 import type { MotionTelemetry, Session, TouchTelemetry } from '../../types/api';
 
@@ -175,65 +174,53 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto space-y-4 text-xs font-mono">
-      {/* Demo notice badge */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400 bg-neutral-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
-        <span className="flex items-center gap-1.5 text-cyan-400">
-          <Navigation className="w-3.5 h-3.5" /> Demo Order Simulation
-        </span>
-        <button
-          onClick={handleNextDemoOrder}
-          className="text-slate-300 hover:text-white underline"
-        >
-          Next Demo Order
+    <div className="animate-rise">
+      <div className="mb-3 flex items-baseline justify-between">
+        <span className="label">New order · {order.id}</span>
+        <button onClick={handleNextDemoOrder} className="font-mono text-[11px] text-mute underline underline-offset-4 hover:text-paper">
+          next order
         </button>
       </div>
 
-      {/* Order Card */}
-      <div className="p-4 rounded-2xl bg-[#121212] border border-[#223558] shadow-lg space-y-3">
-        <div className="flex items-start justify-between pb-3 border-b border-[#223558]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800 flex items-center justify-center text-cyan-400">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-100 text-sm">{order.restaurant}</h3>
-              <span className="text-[10px] text-slate-400">{order.id} · {order.distance}</span>
-            </div>
+      {/* the ticket */}
+      <div className="relative border border-line-2 bg-ink-2">
+        <div className="flex items-start justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <h3 className="font-serif text-[26px] leading-[1.05] text-paper">{order.restaurant}</h3>
+            <div className="mt-1 font-mono text-[11px] text-mute">{order.distance}</div>
           </div>
           <div className="text-right">
-            <span className="text-base font-extrabold text-emerald-400">{order.payout}</span>
-            <span className="text-[10px] text-slate-400 block">Est. Earning</span>
+            <div className="tnum font-mono text-[26px] leading-none text-paper">{order.payout}</div>
+            <div className="label mt-1.5">you earn</div>
           </div>
         </div>
 
-        {/* Pickup and Dropoff */}
-        <div className="space-y-2 text-[11px]">
-          <div className="flex items-start gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 mt-1 shrink-0" />
-            <div>
-              <span className="text-slate-400 block text-[10px]">PICKUP</span>
-              <span className="text-slate-200">{order.pickup}</span>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 mt-1 shrink-0" />
-            <div>
-              <span className="text-slate-400 block text-[10px]">DELIVERY</span>
-              <span className="text-slate-200">{order.dropoff}</span>
-            </div>
-          </div>
+        {/* perforation */}
+        <div className="relative h-0 border-t border-dashed border-line-2">
+          <span className="absolute -left-[9px] -top-[9px] h-[18px] w-[18px] rounded-full border border-line-2 bg-ink [clip-path:inset(0_0_0_50%)]" />
+          <span className="absolute -right-[9px] -top-[9px] h-[18px] w-[18px] rounded-full border border-line-2 bg-ink [clip-path:inset(0_50%_0_0)]" />
         </div>
 
-        <div className="p-2.5 rounded-lg bg-neutral-900/60 border border-slate-800 text-[11px] text-slate-300">
-          <span className="text-slate-400 text-[10px] block">ITEMS</span>
-          {order.items}
+        <div className="grid grid-cols-[14px_1fr] gap-x-3 p-5">
+          <span className="mt-1.5 h-2.5 w-2.5 rounded-full border border-paper" />
+          <div>
+            <div className="label">Pickup</div>
+            <div className="mt-0.5 text-[14px] text-paper">{order.pickup}</div>
+          </div>
+          <span className="mx-auto my-1 h-6 w-px bg-line-2" />
+          <span />
+          <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-paper" />
+          <div>
+            <div className="label">Drop</div>
+            <div className="mt-0.5 text-[14px] text-paper">{order.dropoff}</div>
+          </div>
         </div>
+        <div className="border-t border-line px-5 py-3 font-mono text-[11.5px] leading-relaxed text-paper-2">{order.items}</div>
       </div>
 
-      {/* Swipe to Accept Interaction */}
+      {/* swipe to accept: the gesture itself is a signal */}
       {!isAccepted ? (
-        <div className="space-y-2">
+        <div className="mt-4">
           <div
             ref={sliderRef}
             onPointerDown={handlePointerDown}
@@ -241,48 +228,27 @@ export const DemoOrderScreen: React.FC<DemoOrderScreenProps> = ({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             style={{ touchAction: 'none' }}
-            className="relative w-full h-14 rounded-2xl bg-[#0a0a0a] border border-[#223558] overflow-hidden flex items-center p-1 cursor-grab active:cursor-grabbing select-none"
+            className="relative flex h-16 w-full cursor-grab select-none items-center overflow-hidden border border-line-2 active:cursor-grabbing"
           >
-            {/* Animated track fill */}
-            <div
-              className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-cyan-950 to-cyan-700/60 transition-all pointer-events-none"
-              style={{ width: `${Math.max(10, dragProgress * 100)}%` }}
-            />
-
-            {/* Centered label */}
-            <div className="w-full text-center text-xs font-semibold text-cyan-300/80 pointer-events-none flex items-center justify-center gap-1">
-              <span>Swipe to Accept Order</span>
-              <ChevronRight className="w-4 h-4 animate-pulse" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 bg-paper/10" style={{ width: `${dragProgress * 100}%` }} />
+            <div className="pointer-events-none w-full pl-10 text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-paper-2" style={{ opacity: 1 - dragProgress }}>
+              Swipe to accept <span className="inline-block animate-pulse">→→</span>
             </div>
-
-            {/* Draggable knob */}
             <div
-              className="absolute top-1 bottom-1 w-12 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center justify-center shadow-lg shadow-cyan-950 transition-transform pointer-events-none"
-              style={{
-                left: `calc(4px + ${dragProgress} * (100% - 56px))`,
-              }}
+              className="pointer-events-none absolute bottom-1 top-1 flex w-12 items-center justify-center bg-paper text-xl text-ink"
+              style={{ left: `calc(4px + ${dragProgress} * (100% - 56px))` }}
             >
-              <ChevronRight className="w-6 h-6 stroke-[3]" />
+              →
             </div>
           </div>
-          <span className="text-[10px] text-slate-400 block text-center">
-            Motor habits & swipe velocity are analyzed upon acceptance
-          </span>
+          <p className="mt-2 text-center text-[11.5px] text-mute">How you swipe is part of how we know it's you.</p>
         </div>
       ) : (
-        <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-700/60 text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>Order Accepted</span>
-          </div>
-          <p className="text-xs text-slate-300">
-            Swipe telemetry analyzed by TrustPulse. Session score updated!
-          </p>
-          <button
-            onClick={handleNextDemoOrder}
-            className="px-3 py-1.5 rounded-lg bg-neutral-800 text-slate-200 border border-slate-700 hover:bg-slate-700 text-xs"
-          >
-            Load Another Order
+        <div className="mt-4 border-l-2 border-allow py-1 pl-4">
+          <div className="font-serif text-[24px] leading-tight text-paper">Accepted. Head to pickup.</div>
+          <p className="mt-1 text-[12.5px] text-mute">{isSubmittingSwipe ? 'Checking your swipe' : 'Swipe checked. Trust updated.'}</p>
+          <button onClick={handleNextDemoOrder} className="mt-3 font-mono text-[11px] text-paper underline underline-offset-4">
+            load another order
           </button>
         </div>
       )}

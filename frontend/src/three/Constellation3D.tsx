@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Grid, OrbitControls, QuadraticBezierLine } from '@react-three/drei';
-import { LabelProjector, registerLabel, type LabelAnchor } from './LabelProjector';
+import { LabelProjector, type LabelAnchor } from './LabelProjector';
+import { registerLabel } from './labels';
 import * as THREE from 'three';
 import type { Session } from '../types/api';
 import { getActionHex, getActionMeta } from '../utils/status';
@@ -195,11 +196,11 @@ function HubMark({ hub }: { hub: Hub }) {
     <group position={hub.pos}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <circleGeometry args={[0.34, 48]} />
-        <meshBasicMaterial color={hot ? '#e11d48' : '#22d3ee'} transparent opacity={0.06} depthWrite={false} />
+        <meshBasicMaterial color={hot ? '#e11d48' : '#edebe6'} transparent opacity={0.035} depthWrite={false} />
       </mesh>
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
         <ringGeometry args={[0.3, 0.315, 48, 1, 0, Math.PI * 1.6]} />
-        <meshBasicMaterial color={hot ? '#e11d48' : '#22d3ee'} transparent opacity={0.55} depthWrite={false} />
+        <meshBasicMaterial color={hot ? '#e11d48' : '#edebe6'} transparent opacity={0.4} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -240,7 +241,7 @@ function Arc({ from, to }: { from: THREE.Vector3; to: THREE.Vector3 }) {
     if (mat?.uniforms?.dashOffset) mat.uniforms.dashOffset.value -= dt * 0.8;
   });
   return (
-    <QuadraticBezierLine ref={ref} start={from} end={to} mid={mid} color="#fde047" lineWidth={1.6} dashed dashScale={12} dashSize={0.5} gapSize={0.4} />
+    <QuadraticBezierLine ref={ref} start={from} end={to} mid={mid} color="#bdbab2" lineWidth={1.4} dashed dashScale={12} dashSize={0.5} gapSize={0.4} />
   );
 }
 
@@ -316,14 +317,14 @@ export const Constellation3D: React.FC<Constellation3DProps> = ({
   return (
     <div className="relative overflow-hidden" style={{ height }}>
       <Canvas camera={{ position: [0, 2.6, 3.4], fov: 42 }} dpr={[1, 2]}>
-        <color attach="background" args={['#000000']} />
-        <fog attach="fog" args={['#000000', 4, 9]} />
+        <color attach="background" args={['#0b0b0a']} />
+        <fog attach="fog" args={['#0b0b0a', 4, 9]} />
         <Grid
           infiniteGrid
           cellSize={0.13}
           sectionSize={1.3}
-          cellColor="#0f2438"
-          sectionColor="#16405a"
+          cellColor="#1d1d1b"
+          sectionColor="#34332f"
           cellThickness={0.6}
           sectionThickness={1}
           fadeDistance={7}
@@ -359,21 +360,21 @@ export const Constellation3D: React.FC<Constellation3DProps> = ({
       <div className="pointer-events-none absolute inset-0">
         {hubs.map((h) => (
           <div key={h.city} ref={registerLabel(labelEls, `hub:${h.city}`)} className="invisible absolute left-0 top-0 whitespace-nowrap text-center">
-            <div className="text-[12px] font-semibold tracking-wide text-slate-100 [text-shadow:0_1px_6px_#000]">{h.city}</div>
-            <div className="text-[10px] text-slate-400">
+            <div className="font-serif text-[17px] leading-none text-paper [text-shadow:0_1px_8px_#0b0b0a]">{h.city}</div>
+            <div className="mt-1 font-mono text-[10px] text-mute">
               {h.riders} rider{h.riders === 1 ? '' : 's'}
-              {h.escalated > 0 && <span className="text-rose-400"> · {h.escalated} flagged</span>}
+              {h.escalated > 0 && <span className="text-review"> · {h.escalated} flagged</span>}
             </div>
           </div>
         ))}
         {focus && (
           <div
             ref={registerLabel(labelEls, 'tooltip')}
-            className="invisible absolute left-0 top-0 whitespace-nowrap rounded-lg border border-slate-600 bg-[#000000]/95 px-2.5 py-1.5 text-[11px] text-slate-200 shadow-xl"
+            className="invisible absolute left-0 top-0 whitespace-nowrap border-l-2 border-paper bg-ink/95 px-3 py-1.5 text-[11px] text-paper-2"
           >
-            <div className="font-semibold text-slate-100">{focus.session.name}</div>
-            <div className="text-slate-400">
-              Trust {focus.session.trust} · <span className="font-medium text-slate-200">{getActionMeta(focus.session.action).label}</span>
+            <div className="text-[13px] text-paper">{focus.session.name}</div>
+            <div className="font-mono text-mute">
+              trust {focus.session.trust} · <span style={{ color: getActionHex(focus.session.action) }}>{getActionMeta(focus.session.action).label}</span>
             </div>
           </div>
         )}
@@ -383,13 +384,13 @@ export const Constellation3D: React.FC<Constellation3DProps> = ({
 };
 
 export const ConstellationLegend: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-300 ${className}`}>
+  <div className={`flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10.5px] text-paper-2 ${className}`}>
     {(['ALLOW', 'SOFT_CHECK', 'STEP_UP', 'REVIEW', 'ENROLLING'] as const).map((a) => (
-      <span key={a} className="flex items-center gap-1.5">
-        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: getActionHex(a) }} />
+      <span key={a} className="flex items-center gap-1.5 uppercase tracking-[0.1em]">
+        <span className="inline-block h-2 w-2 rounded-[1px]" style={{ background: getActionHex(a) }} />
         {getActionMeta(a).label}
       </span>
     ))}
-    <span className="text-slate-500">Pillar height = risk · ring = just escalated · dashed arc = new city</span>
+    <span className="text-dim">pillar height = risk · ring = just escalated · dashed arc = new city</span>
   </div>
 );

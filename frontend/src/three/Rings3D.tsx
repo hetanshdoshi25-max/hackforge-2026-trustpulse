@@ -3,7 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Line, OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import type { RentalRing } from '../types/api';
-import { LabelProjector, registerLabel, type LabelAnchor } from './LabelProjector';
+import { LabelProjector, type LabelAnchor } from './LabelProjector';
+import { registerLabel } from './labels';
 
 /**
  * Each rental ring: one unknown person (red, pulsing, centre) and the verified
@@ -11,7 +12,7 @@ import { LabelProjector, registerLabel, type LabelAnchor } from './LabelProjecto
  */
 
 const RED = '#e11d48';
-const ACCOUNT = '#e5e7eb';
+const ACCOUNT = '#edebe6';
 
 interface Layout {
   ring: RentalRing;
@@ -108,7 +109,7 @@ export const Rings3D: React.FC<{ rings: RentalRing[]; height?: number | string }
   return (
     <div className="relative overflow-hidden" style={{ height }}>
       <Canvas camera={{ position: [0, 3.2, 4.6], fov: 45 }} dpr={[1, 2]}>
-        <color attach="background" args={['#000000']} />
+        <color attach="background" args={['#0b0b0a']} />
         <ambientLight intensity={0.4} />
         <pointLight position={[3, 4, 3]} intensity={40} />
         {placed.map((l) => (
@@ -128,7 +129,7 @@ export const Rings3D: React.FC<{ rings: RentalRing[]; height?: number | string }
             })}
           </group>
         ))}
-        <Sparkles count={60} scale={8} size={1.4} speed={0.2} opacity={0.35} color={RED} />
+        <Sparkles count={40} scale={8} size={1.2} speed={0.2} opacity={0.3} color={RED} />
         <LabelProjector anchors={anchors} elements={labelEls} />
         <OrbitControls enablePan={false} minDistance={2.5} maxDistance={12} autoRotate autoRotateSpeed={0.5} />
       </Canvas>
@@ -137,13 +138,13 @@ export const Rings3D: React.FC<{ rings: RentalRing[]; height?: number | string }
         {placed.map((l) => (
           <React.Fragment key={l.ring.ring_id}>
             <div ref={registerLabel(labelEls, `renter:${l.ring.ring_id}`)} className="invisible absolute left-0 top-0 whitespace-nowrap text-center">
-              <div className="text-[12px] font-bold tracking-wide text-rose-300 [text-shadow:0_1px_6px_#000]">Unknown person</div>
-              <div className="text-[10px] text-slate-400">{l.ring.ring_id} · {l.ring.accounts.length} accounts</div>
+              <div className="font-serif text-[18px] italic leading-none text-[#ff6b86] [text-shadow:0_1px_8px_#0b0b0a]">Unknown person</div>
+              <div className="mt-1 font-mono text-[10px] text-mute">{l.ring.ring_id} · {l.ring.accounts.length} accounts</div>
             </div>
             {l.accounts.map((a) => (
               <div key={a.id} ref={registerLabel(labelEls, `acct:${l.ring.ring_id}:${a.id}`)} className="invisible absolute left-0 top-0 whitespace-nowrap text-center">
-                <div className="text-[11px] font-semibold text-slate-100 [text-shadow:0_1px_6px_#000]">{a.name}</div>
-                <div className="text-[10px] text-slate-500">{a.id}</div>
+                <div className="text-[12px] text-paper [text-shadow:0_1px_8px_#0b0b0a]">{a.name}</div>
+                <div className="font-mono text-[10px] text-dim">{a.id}</div>
               </div>
             ))}
           </React.Fragment>

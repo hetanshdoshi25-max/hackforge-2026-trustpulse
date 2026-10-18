@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { Check, ShieldCheck, X } from 'lucide-react';
+import { Btn, Label } from '../ui/kit';
 
-/**
- * One-time consent before any behavioural data is collected (DPDP Act: consent for a
- * stated purpose). Stored per device; bump CONSENT_VERSION if what we collect changes.
- */
-export const CONSENT_VERSION = '1';
-const KEY = 'trustpulse_consent';
+import { CONSENT_KEY, CONSENT_VERSION } from './consent';
 
-export function hasConsent(): boolean {
-  try {
-    return localStorage.getItem(KEY) === CONSENT_VERSION;
-  } catch {
-    return false;
-  }
-}
+const USE = [
+  ['How you type your PIN', 'key hold times and the gaps between keys'],
+  ['How you swipe to accept an order', 'speed, straightness, angle'],
+  ['How you hold the phone while doing that', 'tilt and steadiness, a few seconds only'],
+];
+const NEVER = [
+  'Track your location from these sensors, or read them in the background',
+  'Store raw keystrokes or sensor streams: only a few averaged numbers',
+  'Use it for anything except protecting your account',
+];
 
 export const ConsentScreen: React.FC<{ onAccept: () => void }> = ({ onAccept }) => {
   const [declined, setDeclined] = useState(false);
 
   const accept = () => {
     try {
-      localStorage.setItem(KEY, CONSENT_VERSION);
+      localStorage.setItem(CONSENT_KEY, CONSENT_VERSION);
     } catch {
       // private mode: consent lasts for this visit only
     }
@@ -29,65 +27,65 @@ export const ConsentScreen: React.FC<{ onAccept: () => void }> = ({ onAccept }) 
   };
 
   return (
-    <div className="mx-auto w-full max-w-sm space-y-4 py-4 text-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/50 bg-cyan-950/60 text-cyan-300">
-          <ShieldCheck className="h-5 w-5" />
-        </div>
-        <h2 className="text-lg font-semibold text-slate-100">Keeping your account yours</h2>
-      </div>
-
-      <p className="text-slate-300">
-        To make sure only <strong>you</strong> can ride on your account, TrustPulse learns how you use this app, the way
-        your bank learns how you sign.
+    <div className="animate-rise">
+      <Label>Before you start · one time</Label>
+      <h2 className="mt-3 font-serif text-[40px] leading-[0.98] text-paper">
+        Your account <em>stays yours.</em>
+      </h2>
+      <p className="mt-4 text-[15px] leading-relaxed text-paper-2">
+        So only <strong className="font-medium text-paper">you</strong> can ride on your account, TrustPulse learns how you use this app,
+        the way a bank learns your signature.
       </p>
 
-      <div className="space-y-2 rounded-xl border border-slate-800 bg-neutral-900/60 p-3">
-        <div className="text-xs uppercase tracking-wider text-slate-500">What we use</div>
-        <Item ok>How you type your PIN: key hold times and gaps</Item>
-        <Item ok>How you swipe to accept an order</Item>
-        <Item ok>How you hold the phone while doing that (tilt and steadiness, a few seconds only)</Item>
+      <div className="mt-7">
+        <Label>What we read</Label>
+        <ul className="mt-2 border-t border-line">
+          {USE.map(([a, b]) => (
+            <li key={a} className="grid grid-cols-[1.5rem_1fr] gap-2 border-b border-line py-3">
+              <span className="font-mono text-allow">+</span>
+              <span>
+                <span className="block text-[14px] text-paper">{a}</span>
+                <span className="block text-[12.5px] text-mute">{b}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div className="space-y-2 rounded-xl border border-slate-800 bg-neutral-900/60 p-3">
-        <div className="text-xs uppercase tracking-wider text-slate-500">What we never do</div>
-        <Item>Track your location from these sensors, or read them in the background</Item>
-        <Item>Store raw keystrokes or sensor streams (only a few averaged numbers)</Item>
-        <Item>Use it for anything except protecting your account</Item>
+      <div className="mt-6">
+        <Label>What we never do</Label>
+        <ul className="mt-2 border-t border-line">
+          {NEVER.map((a) => (
+            <li key={a} className="grid grid-cols-[1.5rem_1fr] gap-2 border-b border-line py-3 text-[14px] text-paper-2">
+              <span className="font-mono text-review">×</span>
+              {a}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <p className="text-xs text-slate-400">
-        A new phone or a new city never blocks you. If something looks unusual, the worst case is a quick selfie, and a
-        person reviews it before anything else happens.
+      <p className="mt-5 text-[12.5px] leading-relaxed text-mute">
+        A new phone or a new city never blocks you. If something looks unusual, the worst case is a quick selfie, and a person
+        reviews it before anything else happens.
       </p>
 
       {declined ? (
-        <div className="rounded-xl border border-yellow-800 bg-yellow-950/40 p-3 text-xs text-yellow-200">
-          Without this, we can't confirm it's you, so login is paused. You can change your mind any time.
-          <button onClick={() => setDeclined(false)} className="mt-2 block font-semibold text-yellow-100 underline">
+        <div className="mt-6 border-l-2 border-soft pl-4 text-[13px] text-paper-2">
+          Without this we can't confirm it's you, so login is paused. You can change your mind any time.
+          <button onClick={() => setDeclined(false)} className="mt-2 block text-paper underline underline-offset-4">
             Review again
           </button>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <button
-            onClick={() => setDeclined(true)}
-            className="flex-1 rounded-xl border border-slate-700 py-3 text-slate-300 hover:bg-neutral-900"
-          >
+        <div className="mt-7 grid grid-cols-[1fr_2fr] gap-2">
+          <Btn variant="ghost" onClick={() => setDeclined(true)} className="py-3.5">
             No thanks
-          </button>
-          <button onClick={accept} className="flex-[2] rounded-xl bg-cyan-500 py-3 font-semibold text-black hover:bg-cyan-400">
+          </Btn>
+          <Btn variant="solid" onClick={accept} className="py-3.5 text-[14px]">
             I agree
-          </button>
+          </Btn>
         </div>
       )}
     </div>
   );
 };
-
-const Item: React.FC<{ ok?: boolean; children: React.ReactNode }> = ({ ok, children }) => (
-  <div className="flex items-start gap-2 text-slate-300">
-    {ok ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> : <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />}
-    <span>{children}</span>
-  </div>
-);

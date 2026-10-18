@@ -1,105 +1,8 @@
 import type { ActionType, AlertType, SessionStatusType } from '../types/api';
 
-export function getActionMeta(action: ActionType | string): {
-  label: string;
-  badgeClass: string;
-  textColor: string;
-  bgColor: string;
-  borderColor: string;
-} {
-  switch (action) {
-    case 'ALLOW':
-      return {
-        label: 'ALLOW',
-        badgeClass: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/80',
-        textColor: 'text-emerald-400',
-        bgColor: 'bg-emerald-950/60',
-        borderColor: 'border-emerald-800',
-      };
-    case 'SOFT_CHECK':
-      return {
-        label: 'SOFT CHECK',
-        badgeClass: 'bg-yellow-950/60 text-yellow-300 border-yellow-700/80',
-        textColor: 'text-yellow-300',
-        bgColor: 'bg-yellow-950/60',
-        borderColor: 'border-yellow-700',
-      };
-    case 'STEP_UP':
-      return {
-        label: 'STEP UP',
-        badgeClass: 'bg-orange-950/60 text-orange-400 border-orange-800/80',
-        textColor: 'text-orange-400',
-        bgColor: 'bg-orange-950/60',
-        borderColor: 'border-orange-800',
-      };
-    case 'REVIEW':
-      return {
-        label: 'REVIEW',
-        badgeClass: 'bg-rose-950/60 text-rose-400 border-rose-700/80',
-        textColor: 'text-rose-400',
-        bgColor: 'bg-rose-950/60',
-        borderColor: 'border-rose-800',
-      };
-    case 'ENROLLING':
-      return {
-        label: 'ENROLLING',
-        badgeClass: 'bg-indigo-950/60 text-indigo-300 border-indigo-700/80',
-        textColor: 'text-indigo-300',
-        bgColor: 'bg-indigo-950/60',
-        borderColor: 'border-indigo-700',
-      };
-    default:
-      return {
-        label: action || 'UNKNOWN',
-        badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700',
-        textColor: 'text-slate-400',
-        bgColor: 'bg-neutral-900',
-        borderColor: 'border-slate-700',
-      };
-  }
-}
-
-export function getStatusMeta(status: SessionStatusType | string): {
-  label: string;
-  badgeClass: string;
-} {
-  switch (status) {
-    case 'ACTIVE':
-      return { label: 'Active', badgeClass: 'bg-sky-950/60 text-sky-400 border-sky-800/80' };
-    case 'PENDING_REVIEW':
-      return { label: 'Pending Review', badgeClass: 'bg-yellow-950/60 text-yellow-300 border-yellow-700/80' };
-    case 'VERIFIED':
-      return { label: 'Verified', badgeClass: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/80' };
-    case 'BLOCKED':
-      return { label: 'Blocked', badgeClass: 'bg-rose-950/60 text-rose-400 border-rose-700/80' };
-    default:
-      return { label: status || '-', badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700' };
-  }
-}
-
-export function getAlertMeta(type: AlertType | string): {
-  label: string;
-  badgeClass: string;
-} {
-  switch (type) {
-    case 'SELFIE_SUBMITTED':
-      return { label: 'Selfie Submitted', badgeClass: 'bg-purple-950/60 text-purple-300 border-purple-700/80' };
-    case 'REVIEW':
-      return { label: 'Review Flag', badgeClass: 'bg-rose-950/60 text-rose-300 border-rose-700/80' };
-    case 'STEP_UP':
-      return { label: 'Step Up Required', badgeClass: 'bg-orange-950/60 text-orange-300 border-orange-700/80' };
-    case 'SOFT_CHECK':
-      return { label: 'Soft Check', badgeClass: 'bg-yellow-950/60 text-yellow-300 border-yellow-700/80' };
-    case 'PIN_LOCKOUT':
-      return { label: 'PIN Lockout', badgeClass: 'bg-rose-950/60 text-rose-300 border-rose-700/80' };
-    default:
-      return { label: type || 'Alert', badgeClass: 'bg-neutral-900 text-slate-400 border-slate-700' };
-  }
-}
-
 /**
- * Status palette, validated with the dataviz validator on the dark surface (#000000):
- * CVD-separable, normal-vision dE >= 15, >= 3:1 contrast. Always shown with a label/icon.
+ * Decision palette, validated with the dataviz validator on the ink surface:
+ * CVD-separable, normal-vision dE >= 15, >= 3:1 contrast. Always shown with a word too.
  */
 export const ACTION_HEX: Record<string, string> = {
   ENROLLING: '#818cf8',
@@ -109,8 +12,57 @@ export const ACTION_HEX: Record<string, string> = {
   REVIEW: '#e11d48',
 };
 
+const NEUTRAL = '#8a877f';
+
+export const ACTIONS: ActionType[] = ['ENROLLING', 'ALLOW', 'SOFT_CHECK', 'STEP_UP', 'REVIEW'];
+
+const ACTION_COPY: Record<string, { label: string; plain: string }> = {
+  ENROLLING: { label: 'Enrolling', plain: 'Learning this rider' },
+  ALLOW: { label: 'Allow', plain: 'Same person' },
+  SOFT_CHECK: { label: 'Soft check', plain: 'Quick check at next pickup' },
+  STEP_UP: { label: 'Step up', plain: 'Selfie required' },
+  REVIEW: { label: 'Review', plain: 'Paused for a human' },
+};
+
+export function getActionMeta(action: ActionType | string): { label: string; plain: string; hex: string } {
+  const c = ACTION_COPY[action];
+  return { label: c?.label ?? (action || 'Unknown'), plain: c?.plain ?? '', hex: getActionHex(action) };
+}
+
 export function getActionHex(action: string): string {
-  return ACTION_HEX[action] ?? '#94a3b8';
+  return ACTION_HEX[action] ?? NEUTRAL;
+}
+
+export function getStatusMeta(status: SessionStatusType | string): { label: string; hex: string } {
+  switch (status) {
+    case 'ACTIVE':
+      return { label: 'Active', hex: '#bdbab2' };
+    case 'PENDING_REVIEW':
+      return { label: 'Pending review', hex: ACTION_HEX.SOFT_CHECK };
+    case 'VERIFIED':
+      return { label: 'Verified', hex: ACTION_HEX.ALLOW };
+    case 'BLOCKED':
+      return { label: 'Blocked', hex: ACTION_HEX.REVIEW };
+    default:
+      return { label: status || '-', hex: NEUTRAL };
+  }
+}
+
+export function getAlertMeta(type: AlertType | string): { label: string; hex: string } {
+  switch (type) {
+    case 'SELFIE_SUBMITTED':
+      return { label: 'Selfie in', hex: '#edebe6' };
+    case 'REVIEW':
+      return { label: 'Review', hex: ACTION_HEX.REVIEW };
+    case 'STEP_UP':
+      return { label: 'Step up', hex: ACTION_HEX.STEP_UP };
+    case 'SOFT_CHECK':
+      return { label: 'Soft check', hex: ACTION_HEX.SOFT_CHECK };
+    case 'PIN_LOCKOUT':
+      return { label: 'PIN lockout', hex: ACTION_HEX.REVIEW };
+    default:
+      return { label: type || 'Alert', hex: NEUTRAL };
+  }
 }
 
 export function getTrustColor(trust: number): string {
@@ -122,4 +74,12 @@ export function getTrustColor(trust: number): string {
 
 export function getRiskColor(risk: number): string {
   return getTrustColor(100 - risk);
+}
+
+/** Behaviour match colour for a 0-100 match percentage. */
+export function getMatchColor(match: number | undefined | null): string {
+  if (match == null) return NEUTRAL;
+  if (match >= 50) return ACTION_HEX.ALLOW;
+  if (match >= 25) return ACTION_HEX.SOFT_CHECK;
+  return ACTION_HEX.REVIEW;
 }

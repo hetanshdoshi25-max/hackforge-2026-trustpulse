@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, ShieldCheck, Smartphone, Trophy } from 'lucide-react';
 import { api } from '../services/api';
 import { socketService } from '../services/websocket';
 import type { ChallengeAttempt, ChallengeBoard, Session, WebSocketMessage } from '../types/api';
 import { Fingerprint3D } from '../three/Fingerprint3D';
-import { getActionHex, getActionMeta } from '../utils/status';
+import { getActionHex } from '../utils/status';
+import { ActionTag, Btn, Empty, Label, Wordmark } from '../components/ui/kit';
 
 /**
  * Projector view of "Can you fool TrustPulse?". Everyone gets the rider's PIN; the
@@ -70,117 +70,140 @@ export const ChallengePage: React.FC = () => {
   const caught = (board?.attempts ?? 0) - (board?.fooled ?? 0);
 
   return (
-    <div className="min-h-screen bg-black px-8 py-6 text-slate-100">
-      <header className="flex items-center justify-between">
-        <Link to="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-slate-200">
-          <ArrowLeft className="h-5 w-5" /> <span className="text-lg font-bold tracking-[0.2em] text-slate-100">TRUST<span className="text-cyan-400">PULSE</span></span>
+    <div className="min-h-screen bg-ink text-paper">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-8 py-4">
+        <Link to="/dashboard" aria-label="Back to dashboard">
+          <Wordmark />
         </Link>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Smartphone className="h-4 w-4" /> Join on your phone:{' '}
+        <div className="flex items-baseline gap-3">
+          <span className="label">Join on your phone</span>
           {joinUrl ? (
-            <span className="font-mono text-cyan-300">{joinUrl}</span>
+            <span className="font-mono text-[15px] text-paper">{joinUrl}</span>
           ) : (
-            <span className="text-cyan-300">the /play address that <code className="font-mono">python start.py --phone</code> printed</span>
+            <span className="text-[13px] text-paper-2">
+              the /play address that <code className="font-mono">python start.py --phone</code> printed
+            </span>
           )}
         </div>
       </header>
 
-      <h1 className="mt-8 text-center text-5xl font-black tracking-tight">Can you fool TrustPulse?</h1>
-      <p className="mt-3 text-center text-lg text-slate-400">
-        Here's {board?.target_name ?? 'the rider'}'s PIN. Log in as them. The engine has to tell it isn't them.
-      </p>
-
-      <div className="mx-auto mt-8 grid max-w-6xl grid-cols-3 gap-4 text-center">
-        <BigStat label="Attempts" value={board?.attempts ?? 0} />
-        <BigStat label="Caught" value={caught} color="#34d399" />
-        <BigStat label="Fooled TrustPulse" value={board?.fooled ?? 0} color={board?.fooled ? '#e11d48' : undefined} />
-      </div>
-
-      <div className="mx-auto mt-8 grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <section className="rounded-2xl border border-slate-800 bg-[#0a0a0a] p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm uppercase tracking-widest text-slate-400">
-            <Trophy className="h-4 w-4 text-cyan-400" /> Leaderboard: closest to {board?.target_name ?? '-'}
-          </h2>
-          {board && board.leaderboard.length > 0 ? (
-            <ol className="space-y-2">
-              {board.leaderboard.map((e, i) => (
-                <li key={e.challenger} className="flex items-center gap-3 rounded-xl border border-slate-800 bg-neutral-900/60 px-4 py-3">
-                  <span className="w-6 text-right font-mono text-slate-500">{i + 1}</span>
-                  <span className="flex-1 truncate text-lg">{e.challenger}</span>
-                  <span className="text-xs text-slate-500">{e.attempts} {e.attempts === 1 ? 'try' : 'tries'}</span>
-                  <span className="w-20 text-right font-mono text-2xl font-bold">{e.best_match ?? '-'}%</span>
-                  <span
-                    className="w-20 rounded-md border px-2 py-0.5 text-center text-xs font-semibold"
-                    style={{ color: e.fooled ? '#e11d48' : '#34d399', borderColor: e.fooled ? '#e11d4888' : '#34d39988' }}
-                  >
-                    {e.fooled ? 'FOOLED' : 'CAUGHT'}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="py-10 text-center text-slate-500">No attempts yet. Be the first.</p>
-          )}
-          <p className="mt-3 text-xs text-slate-500">% = how close your typing rhythm, thumb position and grip got to the real rider.</p>
-        </section>
-
-        <section className="rounded-2xl border border-slate-800 bg-[#0a0a0a] p-5">
-          <h2 className="mb-1 text-sm uppercase tracking-widest text-slate-400">Latest attempt</h2>
-          {latest ? (
-            <>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-semibold">{latest.attempt.challenger}</span>
-                <span className="flex items-center gap-2 text-lg font-bold" style={{ color: getActionHex(latest.attempt.action) }}>
-                  <ShieldCheck className="h-5 w-5" /> {getActionMeta(latest.attempt.action).label} · {latest.attempt.behaviour_match ?? '-'}% match
-                </span>
+      <div className="mx-auto max-w-[1520px] px-8 pb-10 pt-10">
+        <div className="grid grid-cols-1 items-end gap-8 border-b border-line pb-8 lg:grid-cols-[1.4fr_1fr]">
+          <div>
+            <Label>The challenge · {board?.target_name ?? 'the rider'}'s PIN is public</Label>
+            <h1 className="mt-4 font-serif text-[64px] leading-[0.9] md:text-[96px]">
+              Can you fool <em>TrustPulse?</em>
+            </h1>
+            <p className="mt-4 max-w-xl text-[16px] text-paper-2">
+              Everyone gets the PIN. Log in as {board?.target_name ?? 'them'}. The engine has to notice it isn't them.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-line border-x border-line">
+            {[
+              ['Attempts', board?.attempts ?? 0, 'var(--color-paper)'],
+              ['Caught', caught, '#34d399'],
+              ['Fooled it', board?.fooled ?? 0, board?.fooled ? '#e11d48' : 'var(--color-paper)'],
+            ].map(([l, v, c]) => (
+              <div key={l as string} className="px-5 py-2">
+                <div className="label">{l}</div>
+                <div className="tnum mt-2 font-mono text-[64px] font-light leading-none" style={{ color: c as string }}>
+                  {v}
+                </div>
               </div>
-              <Fingerprint3D signals={latest.session.signals} action={latest.attempt.action} height={340} />
-              <p className="text-center text-sm text-slate-400">{latest.session.verdict}</p>
-            </>
-          ) : (
-            <div className="flex h-[360px] items-center justify-center text-slate-600">Waiting for the first challenger…</div>
-          )}
-        </section>
-      </div>
+            ))}
+          </div>
+        </div>
 
-      {/* presenter controls */}
-      <div className="mx-auto mt-8 flex max-w-6xl flex-wrap items-center gap-3 border-t border-slate-900 pt-4 text-sm text-slate-500">
-        <span>Presenter: target rider</span>
-        <input
-          value={targetInput}
-          onChange={(e) => setTargetInput(e.target.value.slice(0, 40))}
-          placeholder={board?.target ?? 'DEMO1'}
-          className="w-32 rounded-lg border border-slate-700 bg-neutral-900 px-3 py-1.5 font-mono text-slate-100"
-          aria-label="Challenge target rider ID"
-        />
-        <span>and their PIN</span>
-        <input
-          value={pinInput}
-          onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          placeholder={board?.pin ?? 'PIN'}
-          className="w-24 rounded-lg border border-slate-700 bg-neutral-900 px-3 py-1.5 font-mono text-slate-100"
-          aria-label="Challenge PIN"
-        />
-        <button onClick={savePin} className="rounded-lg border border-cyan-700 px-3 py-1.5 text-cyan-300 hover:bg-cyan-950/40">
-          Publish
-        </button>
-        <button
-          onClick={() => api.resetChallenge().then(setBoard)}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 hover:bg-neutral-900"
-        >
-          <RotateCcw className="h-3.5 w-3.5" /> Reset leaderboard
-        </button>
-        {msg && <span className="text-slate-400">{msg}</span>}
+        <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.1fr]">
+          <section>
+            <div className="flex items-baseline justify-between">
+              <Label>Leaderboard · closest to {board?.target_name ?? '-'}</Label>
+              <span className="font-mono text-[11px] text-dim">best behaviour match</span>
+            </div>
+            {board && board.leaderboard.length > 0 ? (
+              <ol className="mt-3 border-t border-line">
+                {board.leaderboard.map((e, i) => (
+                  <li key={e.challenger} className="grid grid-cols-[2.5rem_1fr_auto_6.5rem] items-center gap-4 border-b border-line py-3.5 animate-rise">
+                    <span className="tnum font-mono text-[13px] text-dim">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-serif text-[28px] leading-none">{e.challenger}</span>
+                      <span className="mt-1 block font-mono text-[11px] text-mute">
+                        {e.attempts} {e.attempts === 1 ? 'try' : 'tries'}
+                      </span>
+                    </span>
+                    <span className="tnum font-mono text-[34px] font-light leading-none">
+                      {e.best_match ?? '-'}
+                      <span className="text-[16px] text-mute">%</span>
+                    </span>
+                    <span
+                      className="justify-self-end font-mono text-[11px] uppercase tracking-[0.14em]"
+                      style={{ color: e.fooled ? '#e11d48' : '#34d399' }}
+                    >
+                      ■ {e.fooled ? 'fooled' : 'caught'}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <Empty title="No attempts yet">Be the first. Open /play on your phone.</Empty>
+            )}
+            <p className="mt-4 font-mono text-[11px] text-dim">% = how close your typing rhythm, thumb position and grip got to the real rider.</p>
+          </section>
+
+          <section className="border-line lg:border-l lg:pl-10">
+            <Label>Latest attempt</Label>
+            {latest ? (
+              <>
+                <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                  <span className="font-serif text-[40px] leading-none">{latest.attempt.challenger}</span>
+                  <span className="flex items-center gap-4">
+                    <ActionTag action={latest.attempt.action} size="lg" />
+                    <span className="tnum font-mono text-[22px]" style={{ color: getActionHex(latest.attempt.action) }}>
+                      {latest.attempt.behaviour_match ?? '-'}% match
+                    </span>
+                  </span>
+                </div>
+                <Fingerprint3D signals={latest.session.signals} action={latest.attempt.action} height={380} />
+                <p className="text-center font-serif text-[20px] italic text-paper-2">{latest.session.verdict}</p>
+              </>
+            ) : (
+              <div className="flex h-[420px] items-center justify-center font-serif text-[28px] text-dim">Waiting for the first challenger</div>
+            )}
+          </section>
+        </div>
+
+        {/* presenter controls */}
+        <div className="mt-12 flex flex-wrap items-end gap-6 border-t border-line pt-5">
+          <span className="label self-center">Presenter</span>
+          <label>
+            <span className="label">Target rider</span>
+            <input
+              value={targetInput}
+              onChange={(e) => setTargetInput(e.target.value.slice(0, 40))}
+              placeholder={board?.target ?? 'DEMO1'}
+              className="field mt-1 block w-32"
+              aria-label="Challenge target rider ID"
+            />
+          </label>
+          <label>
+            <span className="label">Their PIN</span>
+            <input
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder={board?.pin ?? 'PIN'}
+              className="field mt-1 block w-24"
+              aria-label="Challenge PIN"
+            />
+          </label>
+          <Btn variant="line" onClick={savePin} className="!py-2">
+            Publish
+          </Btn>
+          <Btn variant="ghost" onClick={() => api.resetChallenge().then(setBoard)} className="!py-2">
+            Reset leaderboard
+          </Btn>
+          {msg && <span className="self-center font-mono text-[12px] text-paper-2">{msg}</span>}
+        </div>
       </div>
     </div>
   );
 };
-
-const BigStat: React.FC<{ label: string; value: number; color?: string }> = ({ label, value, color }) => (
-  <div className="rounded-2xl border border-slate-800 bg-[#0a0a0a] py-5">
-    <div className="font-mono text-5xl font-black" style={{ color: color ?? '#f1f5f9' }}>
-      {value}
-    </div>
-    <div className="mt-1 text-xs uppercase tracking-widest text-slate-500">{label}</div>
-  </div>
-);

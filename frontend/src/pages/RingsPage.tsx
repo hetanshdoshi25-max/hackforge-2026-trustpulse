@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Network, Smartphone, UserX } from 'lucide-react';
 import { api } from '../services/api';
 import type { RingsResponse } from '../types/api';
 import { useTrustPulseSocket } from '../hooks/useTrustPulseSocket';
 import { Rings3D } from '../three/Rings3D';
 import { formatRelativeTime } from '../utils/formatting';
+import { ErrorBlock, Label, PageHead, Stat } from '../components/ui/kit';
 
 /**
  * Renting is a business: one person often rides several verified accounts.
@@ -17,108 +17,119 @@ export const RingsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    api.getRings().then(setData).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load rings'));
+    api
+      .getRings()
+      .then((d) => {
+        setData(d);
+        setError(null);
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load rings'));
   }, []);
   useTrustPulseSocket(load);
   useEffect(load, [load]);
 
   const rings = data?.rings ?? [];
+  const inRings = rings.reduce((a, r) => a + r.accounts.length, 0);
+
+  if (error && !data) return <ErrorBlock title="Could not load rings" message={error} onRetry={load} />;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-xl border border-rose-900/50 bg-rose-950/10 p-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-lg border border-rose-800/60 bg-rose-950/50 p-2 text-rose-300">
-            <Network className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-slate-100">Rental rings</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-400">
-              The same unknown person showing up on several verified accounts. Flagged sessions are compared
-              across accounts with a PIN-independent behaviour signature (key hold, thumb position, finger size,
-              grip, swipe style) and by shared phones.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-6 text-center">
-          <Stat label="Rings" value={rings.length} hot={rings.length > 0} />
-          <Stat label="Accounts in rings" value={rings.reduce((a, r) => a + r.accounts.length, 0)} hot={rings.length > 0} />
-          <Stat label="Flagged accounts" value={data?.accounts_flagged ?? 0} />
-          <Stat label="Sightings" value={data?.sightings ?? 0} />
-        </div>
+    <div className="space-y-10">
+      <PageHead
+        no="08"
+        kicker="Cross-account detection"
+        title={
+          <>
+            One renter, <em>many accounts.</em>
+          </>
+        }
+        lede="Flagged sessions are compared across accounts with a PIN-independent signature: key hold, thumb position, finger size, grip, swipe style, plus shared phones. The same stranger on two accounts links them into a ring."
+      />
+
+      <div className="grid grid-cols-2 gap-y-8 md:grid-cols-4 md:divide-x md:divide-line">
+        <Stat className="md:pr-6" label="Rings found" value={rings.length} color={rings.length ? '#e11d48' : undefined} />
+        <Stat className="md:px-6" label="Accounts in rings" value={inRings} color={inRings ? '#e11d48' : undefined} />
+        <Stat className="md:px-6" label="Flagged accounts" value={data?.accounts_flagged ?? 0} />
+        <Stat className="md:pl-6" label="Stranger sightings" value={data?.sightings ?? 0} />
       </div>
 
-      {error && <div className="rounded-lg border border-rose-800 bg-rose-950/40 p-3 text-sm text-rose-300">{error}</div>}
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <div className="relative overflow-hidden rounded-xl border border-slate-800">
+      <div className="grid grid-cols-1 gap-10 xl:grid-cols-[1.5fr_1fr]">
+        <section className="relative -mx-5 border-y border-line md:mx-0 md:border">
           {rings.length > 0 ? (
-            <Rings3D rings={rings} height={560} />
+            <Rings3D rings={rings} height={580} />
           ) : (
-            <div className="flex h-[560px] flex-col items-center justify-center gap-3 bg-black text-center">
-              <UserX className="h-10 w-10 text-slate-600" />
-              <p className="text-slate-300">No rental rings detected yet</p>
-              <p className="max-w-sm text-sm text-slate-500">
-                A ring appears once the same unknown person is flagged on two or more accounts.
-              </p>
+            <div className="flex h-[580px] flex-col items-center justify-center px-8 text-center">
+              <svg width="160" height="90" viewBox="0 0 160 90" className="text-line-2" aria-hidden>
+                <circle cx="80" cy="45" r="8" fill="none" stroke="currentColor" />
+                {[0, 1, 2, 3].map((i) => {
+                  const a = (i / 4) * Math.PI * 2 + 0.4;
+                  return (
+                    <g key={i}>
+                      <line x1={80} y1={45} x2={80 + Math.cos(a) * 60} y2={45 + Math.sin(a) * 34} stroke="currentColor" strokeDasharray="3 4" />
+                      <circle cx={80 + Math.cos(a) * 64} cy={45 + Math.sin(a) * 36} r="4" fill="currentColor" />
+                    </g>
+                  );
+                })}
+              </svg>
+              <div className="mt-6 font-serif text-[30px]">No rings yet</div>
+              <p className="mt-2 max-w-sm text-[13px] text-mute">A ring appears once the same unknown person is flagged on two or more accounts.</p>
             </div>
           )}
           {rings.length > 0 && (
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-slate-800 bg-black/80 px-3 py-2 text-[11px] text-slate-300">
-              <span className="font-semibold text-rose-300">Red core</span> = one unknown person · spoke strength = behaviour match ·
-              dashed spoke = same phone
+            <div className="pointer-events-none absolute bottom-4 left-4 right-4 font-mono text-[10.5px] text-paper-2">
+              <span className="text-[#ff6b86]">red core</span> = one unknown person · spoke weight = behaviour match · dashed spoke = same phone
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="space-y-4">
+        <section className="space-y-8">
+          {rings.length === 0 && <div className="border-t border-line pt-5 text-[13px] text-mute">Ring evidence will be listed here.</div>}
           {rings.map((r) => (
-            <div key={r.ring_id} className="space-y-3 rounded-xl border border-rose-900/60 bg-[#0a0a0a] p-4">
-              <div className="flex items-center justify-between">
-                <div className="font-mono text-sm font-bold text-rose-300">{r.ring_id}</div>
-                <div className="text-xs text-slate-500">
-                  {r.sightings} sightings · last {formatRelativeTime(r.last_seen)}
-                </div>
+            <article key={r.ring_id} className="border-t border-review/70 pt-4">
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-[13px] text-[#ff6b86]">{r.ring_id}</span>
+                <span className="font-mono text-[11px] text-dim">
+                  {r.sightings} sightings · {formatRelativeTime(r.last_seen)}
+                </span>
               </div>
-              <div className="text-sm text-slate-300">
-                One person riding <strong className="text-slate-100">{r.accounts.length} verified accounts</strong>
+              <p className="mt-2 font-serif text-[24px] leading-tight">
+                One person riding <em>{r.accounts.length} verified accounts</em>
                 {r.device_evidence && ', on the same phone'}.
-              </div>
-              <ul className="space-y-1.5">
+              </p>
+              <div className="mt-4 border-t border-line">
                 {r.members.map((m) => (
-                  <li key={m.rider_id} className="flex items-center justify-between rounded-lg border border-slate-800 bg-neutral-900/50 px-3 py-2 text-sm">
-                    <Link to={`/riders/${m.rider_id}`} className="text-slate-100 hover:text-cyan-300">
-                      {m.name} <span className="text-xs text-slate-500">{m.rider_id}</span>
-                    </Link>
-                    <span className="text-xs text-slate-400">
+                  <Link
+                    key={m.rider_id}
+                    to={`/riders/${m.rider_id}`}
+                    className="flex items-baseline justify-between gap-3 border-b border-line py-2.5 transition-colors hover:bg-ink-2"
+                  >
+                    <span className="text-[14px] text-paper">
+                      {m.name} <span className="font-mono text-[10.5px] text-dim">{m.rider_id}</span>
+                    </span>
+                    <span className="font-mono text-[11px] text-mute">
                       {m.sightings} flagged · {m.cities.join(', ') || '-'}
                     </span>
-                  </li>
-                ))}
-              </ul>
-              <div className="space-y-1 border-t border-slate-800 pt-2 text-xs text-slate-400">
-                {r.evidence.map((e) => (
-                  <div key={`${e.a}-${e.b}`} className="flex flex-wrap items-center gap-x-2">
-                    <span className="text-slate-300">{e.a} ↔ {e.b}</span>
-                    {e.behaviour_match != null && <span>behaviour {e.behaviour_match}% alike</span>}
-                    {e.shared_devices.length > 0 && (
-                      <span className="flex items-center gap-1 text-rose-300">
-                        <Smartphone className="h-3 w-3" /> same phone
-                      </span>
-                    )}
-                  </div>
+                  </Link>
                 ))}
               </div>
-            </div>
+              <div className="mt-3">
+                <Label>Evidence</Label>
+                <div className="mt-2 space-y-1 font-mono text-[11.5px] text-paper-2">
+                  {r.evidence.map((e) => (
+                    <div key={`${e.a}-${e.b}`} className="flex flex-wrap gap-x-3">
+                      <span className="text-paper">
+                        {e.a} ↔ {e.b}
+                      </span>
+                      {e.behaviour_match != null && <span>behaviour {e.behaviour_match}% alike</span>}
+                      {e.shared_devices.length > 0 && <span className="text-[#ff6b86]">same phone</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
           ))}
-        </div>
+        </section>
       </div>
     </div>
   );
 };
-
-const Stat: React.FC<{ label: string; value: number; hot?: boolean }> = ({ label, value, hot }) => (
-  <div>
-    <div className={`font-mono text-2xl font-bold ${hot ? 'text-rose-300' : 'text-slate-100'}`}>{value}</div>
-    <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-  </div>
-);
